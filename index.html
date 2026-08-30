@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Учет роутеров и приставок</title>
+    <title>Сканер серийного номера</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
@@ -61,7 +61,7 @@
             border: 1px solid #3b4e63;
             background: #17212b;
             color: white;
-            font-size: 16px;
+            font-size: 14px;
             box-sizing: border-box;
         }
         .btn {
@@ -78,7 +78,6 @@
         .file-btn { background-color: #2980b9; color: white; }
         #file-input { display: none; }
         
-        /* Управление видимостью шагов */
         .step { display: none; }
         .step.active { display: flex; flex-direction: column; gap: 15px; }
     </style>
@@ -94,7 +93,7 @@
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
-        <!-- ШАГ 2: Подтверждение кода и заполнение остальной формы -->
+        <!-- ШАГ 2: Выбор монтажника и отправка -->
         <div id="step-form" class="step">
             <h3 style="text-align: center; margin: 0;">✅ Код успешно считан</h3>
             
@@ -105,19 +104,23 @@
             </div>
 
             <div class="card">
-                <label for="assignee">Кем выдан / Ответственный:</label>
-                <select id="assignee">
-                    <option value="Толокнов">Толокнов</option>
-                    <option value="Лоос">Лоос</option>
-                    <option value="Стрижко">Стрижко</option>
-                    <option value="Какалова">Какалова</option>
+                <label for="installer">Выберите монтажника:</label>
+                <select id="installer">
+                    <option value="Курмангалиев Тимур Берикович, Бригада №1 (Темиртау)">Курмангалиев Тимур Берикович, Бригада №1 (Темиртау)</option>
+                    <option value="Стрижко Дмитрий Юрьевич, Бригада №3 (Темиртау)">Стрижко Дмитрий Юрьевич, Бригада №3 (Темиртау)</option>
+                    <option value="Новиков Иван Викторович, Бригада №4 (Темиртау)">Новиков Иван Викторович, Бригада №4 (Темиртау)</option>
+                    <option value="Лоос Виктор Геннадьевич, Бригада №5 (Темиртау)">Лоос Виктор Геннадьевич, Бригада №5 (Темиртау)</option>
+                    <option value="Марчуков Андрей Артемович, Бригада №6 (Темиртау)">Марчуков Андрей Артемович, Бригада №6 (Темиртау)</option>
+                    <option value="Иванусь Аркадий Александрович, Бригада №7 (Темиртау)">Иванусь Аркадий Александрович, Бригада №7 (Темиртау)</option>
+                    <option value="Павленко Николай Александрович, Бригада №8 (Темиртау)">Павленко Николай Александрович, Бригада №8 (Темиртау)</option>
+                    <option value="Седухин Владимир Игоревич, Бригада №9 (Темиртау)">Седухин Владимир Игоревич, Бригада №9 (Темиртау)</option>
+                    <option value="Янковицкий Сергей Валериевич, Бригада №10 (Темиртау)">Янковицкий Сергей Валериевич, Бригада №10 (Темиртау)</option>
+                    <option value="Тарыца Захар Васильевич, Бригада №11 (Темиртау)">Тарыца Захар Васильевич, Бригада №11 (Темиртау)</option>
+                    <option value="Кайзер Павел Иванович, Бригада №12 (Темиртау)">Кайзер Павел Иванович, Бригада №12 (Темиртау)</option>
                 </select>
-
-                <label for="issue-date">Дата выдачи:</label>
-                <input type="date" id="issue-date">
             </div>
 
-            <button class="btn main-btn" onclick="submitAllData()">Записать роутер 🚀</button>
+            <button class="btn main-btn" onclick="submitAllData()">Записать в таблицу 🚀</button>
         </div>
 
     </div>
@@ -131,9 +134,6 @@
         const html5QrCode = new Html5Qrcode("reader");
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
-
-        // Автоматически ставим текущую дату в поле даты
-        document.getElementById('issue-date').valueAsDate = new Date();
 
         function startCamera() {
             if (isCameraRunning) return;
@@ -169,7 +169,6 @@
 
         startCamera();
 
-        // Обработка загрузки файла фото
         async function handleFile(e) {
             if (e.target.files && e.target.files.length > 0) {
                 const file = e.target.files[0];
@@ -221,14 +220,11 @@
             startCamera();
         }
 
-        // Финальная отправка всех собранных данных в PuzzleBot
         function submitAllData() {
-            const assignee = document.getElementById('assignee').value;
-            const issueDate = document.getElementById('issue-date').value;
+            const installer = document.getElementById('installer').value;
 
-            // Формируем общую строку, которую передадим в бот
-            // Можно передать в формате JSON или текстом через разделитель, чтобы бот распарсил
-            const resultData = `СН: ${currentCode} | Кем выдан: ${assignee} | Дата: ${issueDate}`;
+            // Упаковываем серийный номер и монтажника в понятную строку через разделитель "||"
+            const resultData = `${currentCode}||${installer}`;
 
             if (tg.sendData) {
                 tg.sendData(resultData);
