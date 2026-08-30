@@ -220,19 +220,25 @@
             startCamera();
         }
 
-        function submitAllData() {
+                function submitAllData() {
             const installer = document.getElementById('installer').value;
 
-            // Упаковываем серийный номер и монтажника в понятную строку через разделитель "||"
-            const resultData = `${currentCode}||${installer}`;
-
-            if (tg.sendData) {
-                tg.sendData(resultData);
+            if (!currentCode) {
+                alert("Ошибка: серийный номер не найден!");
+                return;
             }
 
-            setTimeout(() => {
-                tg.close();
-            }, 100);
+            // Упаковываем данные
+            const resultData = `${currentCode}||${installer}`;
+
+            // Проверяем, запущено ли приложение именно в Telegram
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                // Отправляем данные в бот
+                window.Telegram.WebApp.sendData(resultData);
+            } else {
+                // Если открыто в обычном браузере для теста — просто покажем, что должно улететь
+                alert("Режим тестирования (не Telegram). Данные: " + resultData);
+            }
         }
     </script>
 </body>
