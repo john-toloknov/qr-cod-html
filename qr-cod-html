@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сканер штрихкода роутера</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
+        #reader { width: 100%; max-width: 400px; margin: auto; }
+        #result { margin-top: 20px; font-size: 18px; font-weight: bold; color: green; }
+    </style>
+</head>
+<body>
+
+    <h3>Наведите камеру на штрихкод роутера</h3>
+    <div id="reader"></div>
+    <div id="result"></div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Выводим результат на экран
+            document.getElementById('result').innerText = "Считано: " + decodedText;
+            
+            // Останавливаем сканер после успешного считывания
+            html5QrCode.stop().then((ignore) => {
+                // Передаем данные обратно в PuzzleBot через команду или диплинк
+                // PuzzleBot позволяет передать данные через закрытие WebApp с вызовом команды
+                // Формат команды в PuzzleBot: /pbt_cmd <название_команды> <переменная>
+                
+                // Передаем серийный номер в переменную sn-dr через команду бота /save_sn
+                setTimeout(() => {
+                    tg.sendData(decodedText); // Отправляем текст боту
+                    tg.close(); // Закрываем мини-приложение
+                }, 1000);
+
+            }).catch((err) => {
+                console.error("Ошибка остановки сканера", err);
+            });
+        }
+
+        let html5QrCode = new Html5QrcodesScanner(
+            "reader", { fps: 10, qrbox: { width: 250, height: 150 } }, /* verbose= */ false);
+        
+        html5QrCode.render(onScanSuccess, (errorMessage) => {
+            // Ошибки сканирования каждого кадра можно игнорировать
+        });
+    </script>
+</body>
+</html>
