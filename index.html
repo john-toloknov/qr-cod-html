@@ -73,17 +73,31 @@
             width: 100%;
             font-weight: bold;
         }
+        .main-btn { background-color: #27ae60; color: white; }
         .retry-btn { background-color: #c0392b; color: white; }
         .file-btn { background-color: #2980b9; color: white; }
         #file-input { display: none; }
         
         .step { display: none; }
         .step.active { display: flex; flex-direction: column; gap: 15px; }
+        
+        #success-screen {
+            text-align: center;
+            padding: 30px 10px;
+            display: none;
+        }
+        #success-screen.active {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
 
+        <!-- ШАГ 1: Сканирование -->
         <div id="step-scan" class="step active">
             <h3 style="text-align: center; margin: 0;">Наведите камеру на штрих-код</h3>
             <div id="reader"></div>
@@ -91,6 +105,7 @@
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
+        <!-- ШАГ 2: Выбор монтажника и отправка -->
         <div id="step-form" class="step">
             <h3 style="text-align: center; margin: 0;">✅ Код успешно считан</h3>
             
@@ -116,6 +131,15 @@
                     <option value="Кайзер Павел Иванович, Бригада №12 (Темиртау)">Кайзер Павел Иванович, Бригада №12 (Темиртау)</option>
                 </select>
             </div>
+
+            <button class="btn main-btn" onclick="submitDataToBot()">Записать роутер 🚀</button>
+        </div>
+
+        <!-- ЭКРАН УСПЕХА (чтобы приложение не висело в тупике) -->
+        <div id="success-screen">
+            <h2 style="color: #2ecc71; margin: 0;">Данные отправлены! 🎉</h2>
+            <p style="color: #ccc;">Роутер успешно закреплен за выбранным монтажником.</p>
+            <button class="btn main-btn" onclick="resetScanner()">Сканировать следующий роутер 📲</button>
         </div>
 
     </div>
@@ -129,27 +153,6 @@
         const html5QrCode = new Html5Qrcode("reader");
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
-
-        // Настраиваем главную зеленую кнопку Telegram (MainButton)
-        tg.MainButton.setText("ЗАПИСАТЬ РОУТЕР");
-        tg.MainButton.color = "#27ae60";
-        tg.MainButton.textColor = "#ffffff";
-
-        // Что происходит при нажатии на зеленую кнопку внизу Telegram
-        tg.MainButton.onClick(function() {
-            const installer = document.getElementById('installer').value;
-            const resultData = `${currentCode}||${installer}`;
-
-            // Отправляем данные в PuzzleBot
-            if (tg.sendData) {
-                tg.sendData(resultData);
-            }
-            
-            // Закрываем мини-приложение
-            setTimeout(() => {
-                tg.close();
-            }, 100);
-        });
 
         function startCamera() {
             if (isCameraRunning) return;
@@ -224,22 +227,37 @@
 
         function showFormStep() {
             document.getElementById('step-scan').classList.remove('active');
+            document.getElementById('success-screen').classList.remove('active');
             document.getElementById('scanned-code-text').textContent = currentCode;
             document.getElementById('step-form').classList.add('active');
-            
-            // Показываем зеленую кнопку внизу только тогда, когда код считан и нужно выбрать монтажника
-            tg.MainButton.show();
         }
 
         function resetScanner() {
             currentCode = "";
+            document.getElementById('success-screen').classList.remove('active');
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
             document.getElementById('file-input').value = '';
-            
-            // Скрываем зеленую кнопку пока камера снова сканирует
-            tg.MainButton.hide();
             startCamera();
+        }
+
+        function submitDataToBot() {
+            if (!currentCode) {
+                alert("Ошибка: серийный номер не найден!");
+                return;
+            }
+
+            const installer = document.getElementById('installer').value;
+            const resultData = `${currentCode}||${installer}`;
+
+            // Передаем данные в Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                window.Telegram.WebApp.sendData(resultData);
+            }
+
+            // Переключаем интерфейс на экран успешной отправки вместо зависания/закрытия
+            document.getElementById('step-form').classList.remove('active');
+            document.getElementById('success-screen').classList.add('active');
         }
     </script>
 </body>
