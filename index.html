@@ -76,10 +76,21 @@
         .main-btn { background-color: #27ae60; color: white; }
         .retry-btn { background-color: #c0392b; color: white; }
         .file-btn { background-color: #2980b9; color: white; }
+        .close-btn { background-color: #e67e22; color: white; }
         #file-input { display: none; }
         
         .step { display: none; }
         .step.active { display: flex; flex-direction: column; gap: 15px; }
+        
+        .success-box {
+            text-align: center;
+            background: #212d3b;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
     </style>
 </head>
 <body>
@@ -93,7 +104,7 @@
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
-        <!-- ШАГ 2: Выбор монтажника и отправка -->
+        <!-- ШАГ 2: Выбор монтажника -->
         <div id="step-form" class="step">
             <h3 style="text-align: center; margin: 0;">✅ Код успешно считан</h3>
             
@@ -120,7 +131,22 @@
                 </select>
             </div>
 
-            <button class="btn main-btn" onclick="submitAllData()">Записать в таблицу 🚀</button>
+            <!-- Эта кнопка теперь возвращает на шаг назад (или на главный экран) вместо вызова sendData -->
+            <button class="btn main-btn" onclick="goToConfirmStep()">Далее ➡️</button>
+        </div>
+
+        <!-- ШАГ 3: Финальное окно с кнопкой закрытия приложения -->
+        <div id="step-done" class="step">
+            <div class="success-box">
+                <h2 style="margin: 0; color: #2ecc71;">Готово!</h2>
+                <p style="margin: 0; font-size: 15px; color: #b0c4de;">Данные зафиксированы в приложении.</p>
+                <div style="background: #17212b; padding: 10px; border-radius: 6px; font-size: 13px; color: #8ab4f8; text-align: left;">
+                    <div><b>СН:</b> <span id="final-sn"></span></div>
+                    <div><b>Монтажник:</b> <span id="final-installer"></span></div>
+                </div>
+                <button class="btn close-btn" onclick="closeWebApp()">Закрыть приложение ❌</button>
+                <button class="btn retry-btn" style="background: #3b4e63; font-size: 14px; padding: 10px;" onclick="resetScanner()">Сканировать еще один 🔄</button>
+            </div>
         </div>
 
     </div>
@@ -208,42 +234,39 @@
 
         function showFormStep() {
             document.getElementById('step-scan').classList.remove('active');
+            document.getElementById('step-done').classList.remove('active');
             document.getElementById('scanned-code-text').textContent = currentCode;
             document.getElementById('step-form').classList.add('active');
+        }
+
+        function goToConfirmStep() {
+            const installer = document.getElementById('installer').value;
+            
+            // Выводим итоговые данные на экран подтверждения
+            document.getElementById('final-sn').textContent = currentCode;
+            document.getElementById('final-installer').textContent = installer;
+
+            // Переключаем экраны внутри мини-приложения
+            document.getElementById('step-form').classList.remove('active');
+            document.getElementById('step-done').classList.add('active');
         }
 
         function resetScanner() {
             currentCode = "";
             document.getElementById('step-form').classList.remove('active');
+            document.getElementById('step-done').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
             document.getElementById('file-input').value = '';
             startCamera();
         }
 
-                        function submitAllData() {
-            const installer = document.getElementById('installer').value;
-
-            if (!currentCode) {
-                alert("Ошибка: серийный номер не найден!");
-                return;
-            }
-
-            // Упаковываем данные
-            const resultData = `${currentCode}||${installer}`;
-
-            // Отправляем данные в PuzzleBot напрямую
+        // Кнопка для закрытия мини-приложения
+        function closeWebApp() {
             if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.sendData(resultData);
-            } else {
-                // Если вдруг открыто в обычном браузере для теста
-                alert("Данные для отправки: " + resultData);
-                return;
-            }
-
-            // Закрываем мини-приложение через доли секунды после отправки
-            setTimeout(() => {
                 window.Telegram.WebApp.close();
-            }, 200);
+            } else {
+                window.close();
+            }
         }
     </script>
 </body>
