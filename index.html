@@ -3,53 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер штрихкода роутера</title>
+    <title>Сканер штрих-кодов</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
-        #reader { width: 100%; max-width: 400px; margin: auto; }
-        #result { margin-top: 20px; font-size: 18px; font-weight: bold; color: green; }
+        body { 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 10px; 
+            background: #17212b; 
+            color: white; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 95vh;
+        }
+        #scanner-container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #reader { 
+            width: 100%; 
+            max-width: 400px; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            background: #000;
+        }
+        #success-container {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            min-height: 85vh;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            text-align: center;
+        }
+        .code-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+            overflow-y: auto;
+            text-align: left;
+            flex-grow: 1;
+        }
+        .code-item {
+            font-family: monospace;
+            font-size: 18px;
+            color: #52cbff;
+            background: #2b5278;
+            padding: 14px;
+            border-radius: 8px;
+            word-break: break-all;
+        }
+        .buttons-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .btn {
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        .copy-btn { background-color: #27ae60; color: white; }
+        .file-btn { background-color: #2980b9; color: white; }
+        .retry-btn { background-color: #c0392b; color: white; }
+        #file-input { display: none; }
     </style>
 </head>
 <body>
-
-    <h3>Наведите камеру на штрихкод роутера</h3>
-    <div id="reader"></div>
-    <div id="result"></div>
+    <div id="scanner-container">
+        <h3>Наведите камеру на штрих-код</h3>
+        <div id="reader"></div>
+        <button class="btn file-btn" style="margin-top: 10px;" onclick="document.getElementById('file-input').click()">Загрузить фото 📁</button>
+        <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+    </div>
+    
+    <div id="success-container">
+        <div>
+            <h3>✅ Найденные штрих-коды:</h3>
+            <div class="code-list" id="result-list"></div>
+        </div>
+        <div class="buttons-group">
+            <button class="btn copy-btn" onclick="copyAllCodes()">Скопировать ✅</button>
+            <button class="btn retry-btn" onclick="resetScanner()">Сканировать снова ❌</button>
+        </div>
+    </div>
 
     <script>
-        // Инициализация Telegram Web App
-        let tg = window.Telegram.WebApp;
+        const tg = window.Telegram.WebApp;
+        tg.ready();
         tg.expand();
 
-        function onScanSuccess(decodedText, decodedResult) {
-            // Выводим результат на экран
-            document.getElementById('result').innerText = "Считано: " + decodedText;
-            
-            // Останавливаем сканер после успешного считывания
-            html5QrCode.stop().then((ignore) => {
-                // Передаем данные обратно в PuzzleBot через команду или диплинк
-                // PuzzleBot позволяет передать данные через закрытие WebApp с вызовом команды
-                // Формат команды в PuzzleBot: /pbt_cmd <название_команды> <переменная>
-                
-                // Передаем серийный номер в переменную sn-dr через команду бота /save_sn
-                setTimeout(() => {
-                    tg.sendData(decodedText); // Отправляем текст боту
-                    tg.close(); // Закрываем мини-приложение
-                }, 1000);
+        let foundCodes = [];
+        const html5QrCode = new Html5Qrcode("reader");
+        const zxingReader = new ZXing.BrowserMultiFormatReader();
+        let isCameraRunning = false;
 
+        function startCamera() {
+            if (isCameraRunning) return;
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 15, qrbox: { width: 280, height: 140 } },
+                (text) => {
+                    if (!foundCodes.includes(text)) {
+                        foundCodes.push(text);
+                    }
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    stopCameraAndShow();
+                }
+            ).then(() => {
+                isCameraRunning = true;
             }).catch((err) => {
-                console.error("Ошибка остановки сканера", err);
+                console.log("Ошибка камеры:", err);
             });
         }
 
-        let html5QrCode = new Html5QrcodesScanner(
-            "reader", { fps: 10, qrbox: { width: 250, height: 150 } }, /* verbose= */ false);
-        
-        html5QrCode.render(onScanSuccess, (errorMessage) => {
-            // Ошибки сканирования каждого кадра можно игнорировать
-        });
+        function stopCameraAndShow() {
+            if (isCameraRunning) {
+                html5QrCode.stop().then(() => {
+                    isCameraRunning = false;
+                    showSuccess();
+                }).catch(() => {
+                    isCameraRunning = false;
+                    showSuccess();
+                });
+            } else {
+                showSuccess();
+            }
+        }
+
+        startCamera();
+
+        async function handleFile(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                const file = e.target.files[0];
+                
+                if (isCameraRunning) {
+                    try { 
+                        await html5QrCode.stop(); 
+                        isCameraRunning = false;
+                    } catch(e) {}
+                }
+
+                const reader = new FileReader();
+                reader.onload = async function (event) {
+                    const img = new Image();
+                    img.onload = async function () {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 1600;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * (scaleSize < 1 ? scaleSize : 1);
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        const imageUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+                        try {
+                            const results = await zxingReader.decodeFromImageUrl(imageUrl);
+                            if (results) {
+                                const items = Array.isArray(results) ? results : [results];
+                                foundCodes = [];
+                                items.forEach(item => {
+                                    if (!foundCodes.includes(item.text)) {
+                                        foundCodes.push(item.text);
+                                    }
+                                });
+
+                                if (foundCodes.length > 0) {
+                                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                                    showSuccess();
+                                    return;
+                                }
+                            }
+                            throw new Error();
+                        } catch (err) {
+                            alert("Штрих-коды не найдены на фото. Сделайте снимок ближе к наклейке.");
+                            resetScanner();
+                        }
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function showSuccess() {
+            document.getElementById('scanner-container').style.display = 'none';
+            
+            const listContainer = document.getElementById('result-list');
+            listContainer.innerHTML = '';
+            
+            foundCodes.forEach((code) => {
+                const div = document.createElement('div');
+                div.className = 'code-item';
+                div.textContent = code; // Выводится только сам код без лишних подписей
+                listContainer.appendChild(div);
+            });
+
+            document.getElementById('success-container').style.display = 'flex';
+        }
+
+        function resetScanner() {
+            foundCodes = [];
+            document.getElementById('success-container').style.display = 'none';
+            document.getElementById('scanner-container').style.display = 'flex';
+            document.getElementById('file-input').value = '';
+            startCamera();
+        }
+
+                function copyAllCodes() {
+            const combinedText = foundCodes.join('\n');
+            
+            // Копируем в буфер обмена (на всякий случай)
+            navigator.clipboard.writeText(combinedText).catch(() => {});
+            
+            // Отправляем данные в PuzzleBot. 
+            // Передаем первый отсканированный серийный номер (или все через запятую/перенос)
+            if (tg.sendData) {
+                // Если нужно отправить ровно один серийный номер:
+                tg.sendData(foundCodes[0] || "");
+                
+                // Если штрих-кодов несколько и вы хотите отправить их все сразу, раскомментируйте строку ниже:
+                // tg.sendData(combinedText);
+            }
+            
+            // Закрываем мини-приложение после отправки
+            setTimeout(() => {
+                tg.close();
+            }, 100);
+        }
     </script>
 </body>
 </html>
