@@ -220,7 +220,7 @@
             startCamera();
         }
 
-                function submitAllData() {
+                        function submitAllData() {
             const installer = document.getElementById('installer').value;
 
             if (!currentCode) {
@@ -231,14 +231,19 @@
             // Упаковываем данные
             const resultData = `${currentCode}||${installer}`;
 
-            // Проверяем, запущено ли приложение именно в Telegram
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                // Отправляем данные в бот
+            // Отправляем данные в PuzzleBot напрямую
+            if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.sendData(resultData);
             } else {
-                // Если открыто в обычном браузере для теста — просто покажем, что должно улететь
-                alert("Режим тестирования (не Telegram). Данные: " + resultData);
+                // Если вдруг открыто в обычном браузере для теста
+                alert("Данные для отправки: " + resultData);
+                return;
             }
+
+            // Закрываем мини-приложение через доли секунды после отправки
+            setTimeout(() => {
+                window.Telegram.WebApp.close();
+            }, 200);
         }
     </script>
 </body>
