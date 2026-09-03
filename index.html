@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер серийного номера</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
@@ -92,6 +91,12 @@
             gap: 15px;
             align-items: center;
         }
+        .loader {
+            font-size: 16px;
+            color: #f1c40f;
+            display: none;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -132,22 +137,22 @@
                 </select>
             </div>
 
-            <button class="btn main-btn" onclick="submitDataToBot()">Записать роутер 🚀</button>
+            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать роутер в таблицу 🚀</button>
+            <div class="loader" id="loader-text">⏳ Запись в Google Таблицу...</div>
         </div>
 
-        <!-- ЭКРАН УСПЕХА (чтобы приложение не висело в тупике) -->
+        <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
-            <h2 style="color: #2ecc71; margin: 0;">Данные отправлены! 🎉</h2>
-            <p style="color: #ccc;">Роутер успешно закреплен за выбранным монтажником.</p>
+            <h2 style="color: #2ecc71; margin: 0;">Успешно записано! 🎉</h2>
+            <p style="color: #ccc;">Данные роутера и монтажника добавлены в таблицу.</p>
             <button class="btn main-btn" onclick="resetScanner()">Сканировать следующий роутер 📲</button>
         </div>
 
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        // Вставьте сюда вашу ссылку на развернутый Google Apps Script Web App:
+        const GOOGLE_SCRIPT_URL = "ЗДЕСЬ_ВАША_ССЫЛКА_ИЗ_APPS_SCRIPT";
 
         let currentCode = "";
         const html5QrCode = new Html5Qrcode("reader");
@@ -162,7 +167,7 @@
                 { fps: 15, qrbox: { width: 280, height: 140 } },
                 (text) => {
                     currentCode = text;
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (navigator.vibrate) navigator.vibrate(50); // Вибрация при успешном скане (если поддерживается)
                     stopCameraAndShowForm();
                 }
             ).then(() => {
@@ -209,7 +214,6 @@
                             const result = await zxingReader.decodeFromImageUrl(canvas.toDataURL('image/jpeg', 0.95));
                             if (result) {
                                 currentCode = result.text;
-                                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                                 showFormStep();
                                 return;
                             }
@@ -238,26 +242,46 @@
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
             document.getElementById('file-input').value = '';
+            document.getElementById('submit-btn').style.display = 'block';
+            document.getElementById('loader-text').style.display = 'none';
             startCamera();
         }
 
-        function submitDataToBot() {
+        // Прямая отправка данных на ваш скрипт Google Таблицы
+        async function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
             }
 
             const installer = document.getElementById('installer').value;
-            const resultData = `${currentCode}||${installer}`;
+            const submitBtn = document.getElementById('submit-btn');
+            const loaderText = document.getElementById('loader-text');
 
-            // Передаем данные в Telegram WebApp
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                window.Telegram.WebApp.sendData(resultData);
+            submitBtn.style.display = 'none';
+            loaderText.style.display = 'block';
+
+            try {
+                // Отправляем POST запрос на Google Apps Script
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Важно для общих скриптов Google, чтобы не было ошибки CORS
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serialNumber: currentCode,
+                        installer: installer
+                    })
+                });
+
+                // Так как mode: 'no-cors' не дает прочитать ответ, считаем успешным по факту выполнения запроса
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+
+            } catch (error) {
+                alert("Ошибка при отправке: " + error);
+                submitBtn.style.display = 'block';
+                loaderText.style.display = 'none';
             }
-
-            // Переключаем интерфейс на экран успешной отправки вместо зависания/закрытия
-            document.getElementById('step-form').classList.remove('active');
-            document.getElementById('success-screen').classList.add('active');
         }
     </script>
 </body>
