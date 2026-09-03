@@ -170,7 +170,7 @@
 
     <script>
         // СЮДА ВСТАВЬТЕ ВАШУ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT:
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
+        const GOOGLE_SCRIPT_URL = "ЗДЕСЬ_ВАША_ССЫЛКА";
 
         let currentCode = "";
         let html5QrCode = null;
@@ -278,49 +278,46 @@
             setTimeout(() => { startCamera(); }, 500);
         }
 
-          async function sendDataToGoogleSheet() {
-          if (!currentCode) {
-          alert("Ошибка: серийный номер не найден!");
-          return;
+        async function sendDataToGoogleSheet() {
+            if (!currentCode) {
+                alert("Ошибка: серийный номер не найден!");
+                return;
+            }
+
+            const equipmentType = document.getElementById('equipment-type').value;
+            const installer = document.getElementById('installer').value;
+            const givenBy = document.getElementById('given-by').value;
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const loaderText = document.getElementById('loader-text');
+
+            submitBtn.style.display = 'none';
+            loaderText.style.display = 'block';
+
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            url.searchParams.append('type', equipmentType);
+            url.searchParams.append('serialNumber', currentCode);
+            url.searchParams.append('installer', installer);
+            url.searchParams.append('givenBy', givenBy);
+
+            try {
+                await fetch(url.toString(), {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 800);
+
+            } catch (err) {
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 800);
+            }
         }
-
-          const equipmentType = document.getElementById('equipment-type').value;
-          const installer = document.getElementById('installer').value;
-          const givenBy = document.getElementById('given-by').value;
-    
-          const submitBtn = document.getElementById('submit-btn');
-          const loaderText = document.getElementById('loader-text');
-
-          submitBtn.style.display = 'none';
-          loaderText.style.display = 'block';
-
-        // Формируем URL с параметрами (это единственный способ передать данные в Google Таблицу без блокировок CORS)
-          const url = new URL(GOOGLE_SCRIPT_URL);
-          url.searchParams.append('type', equipmentType);
-          url.searchParams.append('serialNumber', currentCode);
-          url.searchParams.append('installer', installer);
-          url.searchParams.append('givenBy', givenBy);
-
-          try {
-        // Отправляем GET-запрос через скрытый iframe или fetch, который 100% дойдет до скрипта
-             await fetch(url.toString(), {
-              method: 'GET',
-              mode: 'no-cors'
-           });
-
-            setTimeout(() => {
-            document.getElementById('step-form').classList.remove('active');
-            document.getElementById('success-screen').classList.add('active');
-        }, 800);
-
-    } catch (err) {
-        // Даже если браузер ругнется на CORS, данные в таблицу успевают улететь
-        setTimeout(() => {
-            document.getElementById('step-form').classList.remove('active');
-            document.getElementById('success-screen').classList.add('active');
-        }, 800);
-    }
-}
     </script>
 </body>
 </html>
