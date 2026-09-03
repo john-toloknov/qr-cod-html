@@ -102,7 +102,7 @@
 <body>
     <div class="container">
 
-        <!-- ШАГ 1: Выбор типа оборудования и сканирование -->
+        <!-- ШАГ 1 -->
         <div id="step-scan" class="step active">
             <h3 style="text-align: center; margin: 0;">Выберите тип оборудования</h3>
             <div class="card">
@@ -118,7 +118,7 @@
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
-        <!-- ШАГ 2: Выбор сотрудника, монтажника и отправка -->
+        <!-- ШАГ 2 -->
         <div id="step-form" class="step">
             <h3 style="text-align: center; margin: 0;">✅ Код успешно считан</h3>
             
@@ -168,10 +168,8 @@
 
     </div>
 
-    <!-- Скрытый iframe для бесшовной отправки POST-запроса без перезагрузки страницы -->
-    <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
-
     <script>
+        // СЮДА ВСТАВЬТЕ ВАШУ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT:
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentCode = "";
@@ -196,7 +194,6 @@
                 );
                 isCameraRunning = true;
             } catch (err) {
-                console.log("Ошибка запуска камеры:", err);
                 isCameraRunning = false;
             }
         }
@@ -244,7 +241,7 @@
                             }
                             throw new Error();
                         } catch (err) {
-                            alert("Штрих-код не найден на фото. Попробуйте еще раз.");
+                            alert("Штрих-код не найден на фото.");
                             resetScanner();
                         }
                     };
@@ -278,12 +275,10 @@
             document.getElementById('submit-btn').style.display = 'block';
             document.getElementById('loader-text').style.display = 'none';
             
-            setTimeout(() => {
-                startCamera();
-            }, 500);
+            setTimeout(() => { startCamera(); }, 500);
         }
 
-        function sendDataToGoogleSheet() {
+        async function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
@@ -293,45 +288,37 @@
             const installer = document.getElementById('installer').value;
             const givenBy = document.getElementById('given-by').value;
             
-            console.log("Отправка -> Кто выдал:", givenBy);
-            console.log("Отправка -> Монтажник:", installer);
-            
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
 
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Создаем динамическую форму для отправки POST-запроса без CORS-ошибок
-            const form = document.createElement('form');
-            form.action = GOOGLE_SCRIPT_URL;
-            form.method = 'POST';
-            form.target = 'hidden-iframe'; // Отправка в скрытый iframe
-
-            const fields = {
+            const payload = {
                 type: equipmentType,
                 serialNumber: currentCode,
                 installer: installer,
                 givenBy: givenBy
             };
 
-            for (const key in fields) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = fields[key];
-                form.appendChild(input);
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 800);
+
+            } catch (err) {
+                alert("Ошибка соединения с таблицей!");
+                submitBtn.style.display = 'block';
+                loaderText.style.display = 'none';
             }
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-
-            // Показываем экран успеха через секунду
-            setTimeout(() => {
-                document.getElementById('step-form').classList.remove('active');
-                document.getElementById('success-screen').classList.add('active');
-            }, 800);
         }
     </script>
 </body>
