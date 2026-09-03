@@ -3,190 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер оборудования | Beeline</title>
+    <title>Сканер оборудования</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
         :root {
-            --beeline-yellow: #FFCC00;
-            --beeline-yellow-hover: #ffdb4d;
-            --beeline-dark: #121212;
-            --beeline-card: #1e1e1e;
-            --beeline-card-border: #2c2c2c;
-            --text-main: #ffffff;
-            --text-secondary: #aaaaaa;
-            --accent-blue: #3b82f6;
-            --danger-red: #ef4444;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
         }
 
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0; 
-            padding: 20px; 
-            background: var(--beeline-dark); 
+            padding: 16px; 
+            background: var(--bg-color); 
             color: var(--text-main); 
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 95vh;
+            min-height: 100vh;
             box-sizing: border-box;
         }
 
         .container {
             width: 100%;
-            max-width: 420px;
+            max-width: 400px;
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
 
-        /* Шапка с брендингом */
-        .brand-header {
-            text-align: center;
-            margin-bottom: 5px;
-        }
-        .brand-logo {
-            display: inline-block;
-            background: var(--beeline-yellow);
-            color: #000;
-            font-weight: 900;
-            font-size: 20px;
-            padding: 6px 16px;
-            border-radius: 8px;
-            letter-spacing: -0.5px;
-            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.25);
-        }
-
-        h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-main);
-            margin: 0 0 4px 0;
-        }
-
+        /* Аккуратная и компактная область камеры */
         #reader { 
             width: 100%; 
+            height: 220px !important; 
             border-radius: 16px; 
             overflow: hidden; 
             background: #000;
-            border: 2px solid var(--beeline-card-border);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
         }
 
+        /* Современные карточки */
         .card {
-            background: var(--beeline-card);
+            background: var(--card-bg);
             padding: 16px;
             border-radius: 16px;
-            border: 1px solid var(--beeline-card-border);
+            border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             gap: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .code-display {
-            font-family: monospace;
-            font-size: 18px;
-            color: var(--beeline-yellow);
-            background: #111111;
-            padding: 14px;
-            border-radius: 12px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent);
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 10px;
             word-break: break-all;
             text-align: center;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
         }
 
         label {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
+        /* Выпадающие списки и инпуты с идеальным позиционированием стрелки */
+        .select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
         select, input {
             width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid var(--beeline-card-border);
-            background: #141414;
-            color: white;
-            font-size: 15px;
+            padding: 12px 40px 12px 14px; /* Справа оставляем место под стрелочку, чтобы текст не наезжал */
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: #0f172a;
+            color: var(--text-main);
+            font-size: 14px;
             box-sizing: border-box;
             outline: none;
+            appearance: none;
+            -webkit-appearance: none;
             transition: all 0.2s ease;
         }
 
+        /* Идеально выровненная стрелочка через псевдоэлемент или абсолютное позиционирование */
+        .select-wrapper::after {
+            content: "";
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid var(--text-muted);
+            pointer-events: none;
+        }
+
         select:focus, input:focus {
-            border-color: var(--beeline-yellow);
-            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
         }
 
         /* Кнопки */
         .btn {
             border: none;
-            padding: 15px;
-            font-size: 16px;
+            padding: 14px;
+            font-size: 15px;
             border-radius: 12px;
             cursor: pointer;
             width: 100%;
-            font-weight: 700;
-            transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            font-weight: 600;
+            transition: transform 0.1s ease, background-color 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            box-sizing: border-box;
         }
 
         .btn:active {
-            transform: scale(0.97);
+            transform: scale(0.98);
         }
 
-        /* Главная кнопка в стиле Beeline (Желтая) */
         .main-btn { 
-            background-color: var(--beeline-yellow); 
-            color: #000; 
-            box-shadow: 0 4px 14px rgba(255, 204, 0, 0.3);
+            background-color: var(--accent); 
+            color: #0f172a; 
         }
         .main-btn:hover {
-            background-color: var(--beeline-yellow-hover);
+            background-color: var(--accent-hover);
         }
 
-        /* Кнопка сброса/перезапуска (Красная акцентная) */
         .retry-btn { 
             background-color: rgba(239, 68, 68, 0.15); 
-            color: var(--danger-red); 
+            color: var(--danger); 
             border: 1px solid rgba(239, 68, 68, 0.3);
-            font-size: 14px;
+            font-size: 13px;
             padding: 10px;
         }
-        .retry-btn:hover {
-            background-color: rgba(239, 68, 68, 0.25);
-        }
 
-        /* Кнопка файла (Синяя) */
         .file-btn { 
-            background-color: #222b38; 
-            color: #60a5fa; 
-            border: 1px solid #1e3a8a;
+            background-color: var(--card-bg); 
+            color: var(--text-main); 
+            border: 1px solid var(--border-color);
         }
         .file-btn:hover {
-            background-color: #1e293b;
+            background-color: #273448;
         }
 
         #file-input { display: none; }
         
         .step { display: none; }
-        .step.active { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.3s ease; }
+        .step.active { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.25s ease; }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
         #success-screen {
             text-align: center;
-            padding: 40px 15px;
+            padding: 40px 10px;
             display: none;
         }
         #success-screen.active {
@@ -194,51 +197,47 @@
             flex-direction: column;
             gap: 16px;
             align-items: center;
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.25s ease;
         }
 
         .success-icon {
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             background: rgba(34, 197, 94, 0.15);
-            color: #22c55e;
+            color: var(--success);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
-            border: 2px solid rgba(34, 197, 94, 0.3);
+            font-size: 28px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
         .loader {
-            font-size: 15px;
-            color: var(--beeline-yellow);
+            font-size: 14px;
+            color: var(--accent);
             display: none;
             text-align: center;
             font-weight: 500;
-            padding: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
 
-        <!-- Брендовый логотип вверху -->
-        <div class="brand-header">
-            <div class="brand-logo">Beeline</div>
-        </div>
-
         <!-- ШАГ 1 -->
         <div id="step-scan" class="step active">
             <div class="card">
-                <label for="equipment-type">Тип оборудования:</label>
-                <select id="equipment-type">
-                    <option value="router">📡 Роутер</option>
-                    <option value="stb">📺 Приставка</option>
-                </select>
+                <label for="equipment-type">Тип оборудования</label>
+                <div class="select-wrapper">
+                    <select id="equipment-type">
+                        <option value="router">📡 Роутер</option>
+                        <option value="stb">📺 Приставка</option>
+                    </select>
+                </div>
             </div>
             
-            <h3 style="text-align: center; margin-top: 5px;">Наведите камеру на штрих-код</h3>
+            <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);">Наведите камеру на штрих-код</div>
             <div id="reader"></div>
             
             <button class="btn file-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
@@ -247,39 +246,45 @@
 
         <!-- ШАГ 2 -->
         <div id="step-form" class="step">
-            <h3 style="text-align: center; color: #22c55e;">✅ Код успешно считан</h3>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 600; font-size: 14px;">
+                <span>✓</span> Код успешно считан
+            </div>
             
             <div class="card">
-                <label>Серийный номер:</label>
+                <label>Серийный номер</label>
                 <div class="code-display" id="scanned-code-text"></div>
                 <button class="btn retry-btn" onclick="resetScanner()">Сканировать другой код 🔄</button>
             </div>
 
             <div class="card">
-                <label for="author">Кто записывает (Кем выдан):</label>
-                <select id="author">
-                    <option value="Толокнов Евгений">Толокнов Евгений</option>
-                    <option value="Лоос Виктор">Лоос Виктор</option>
-                    <option value="Стрижко Дмитрий">Стрижко Дмитрий</option>
-                    <option value="Какалова Мария">Какалова Мария</option>
-                </select>
+                <label for="author">Кто записывает (Кем выдан)</label>
+                <div class="select-wrapper">
+                    <select id="author">
+                        <option value="Толокнов Евгений">Толокнов Евгений</option>
+                        <option value="Лоос Виктор">Лоос Виктор</option>
+                        <option value="Стрижко Дмитрий">Стрижко Дмитрий</option>
+                        <option value="Какалова Мария">Какалова Мария</option>
+                    </select>
+                </div>
             </div>
 
             <div class="card">
-                <label for="installer">Кому выдан (Монтажник):</label>
-                <select id="installer">
-                    <option value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">Курмангалиев Тимур</option>
-                    <option value="Стрижко Дмитрий Юрьевич,Бригада №3 (Темиртау)">Стрижко Дмитрий</option>
-                    <option value="Новиков Иван Викторович,Бригада №4 (Темиртау)">Новиков Иван</option>
-                    <option value="Лоос Виктор Геннадьевич,Бригада №5 (Темиртау)">Лоос Виктор</option>
-                    <option value="Марчуков Андрей Артемович,Бригада №6 (Темиртау)">Марчуков Андрей</option>
-                    <option value="Иванусь Аркадий Александрович,Бригада №7 (Темиртау)">Иванусь Аркадий</option>
-                    <option value="Павленко Николай Александрович,Бригада №8 (Темиртау)">Павленко Николай</option>
-                    <option value="Седухин Владимир Игоревич,Бригада №9 (Темиртау)">Седухин Владимир</option>
-                    <option value="Янковицкий Сергей Валерьевич,Бригада №10 (Темиртау)">Янковицкий Сергей</option>
-                    <option value="Тарыца Захар Васильевич,Бригада №11 (Темиртау)">Тарыца Захар</option>
-                    <option value="Кайзер Павел Иванович,Бригада №12 (Темиртау)">Кайзер Павел</option>
-                </select>
+                <label for="installer">Кому выдан (Монтажник)</label>
+                <div class="select-wrapper">
+                    <select id="installer">
+                        <option value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">Курмангалиев Тимур</option>
+                        <option value="Стрижко Дмитрий Юрьевич,Бригада №3 (Темиртау)">Стрижко Дмитрий</option>
+                        <option value="Новиков Иван Викторович,Бригада №4 (Темиртау)">Новиков Иван</option>
+                        <option value="Лоос Виктор Геннадьевич,Бригада №5 (Темиртау)">Лоос Виктор</option>
+                        <option value="Марчуков Андрей Артемович,Бригада №6 (Темиртау)">Марчуков Андрей</option>
+                        <option value="Иванусь Аркадий Александрович,Бригада №7 (Темиртау)">Иванусь Аркадий</option>
+                        <option value="Павленко Николай Александрович,Бригада №8 (Темиртау)">Павленко Николай</option>
+                        <option value="Седухин Владимир Игоревич,Бригада №9 (Темиртау)">Седухин Владимир</option>
+                        <option value="Янковицкий Сергей Валерьевич,Бригада №10 (Темиртау)">Янковицкий Сергей</option>
+                        <option value="Тарыца Захар Васильевич,Бригада №11 (Темиртау)">Тарыца Захар</option>
+                        <option value="Кайзер Павел Иванович,Бригада №12 (Темиртау)">Кайзер Павел</option>
+                    </select>
+                </div>
             </div>
 
             <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать в таблицу 🚀</button>
@@ -289,8 +294,8 @@
         <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
             <div class="success-icon">✓</div>
-            <h2 style="color: #ffffff; margin: 0; font-size: 22px;">Успешно записано!</h2>
-            <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Оборудование закреплено за монтажником.</p>
+            <h2 style="color: var(--text-main); margin: 0; font-size: 20px;">Успешно записано!</h2>
+            <p style="color: var(--text-muted); margin: 0; font-size: 13px;">Оборудование закреплено за монтажником.</p>
             <button class="btn main-btn" onclick="resetScanner()" style="margin-top: 10px;">Сканировать следующее 📲</button>
         </div>
 
@@ -312,7 +317,7 @@
             try {
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 280, height: 140 } },
+                    { fps: 15, qrbox: { width: 260, height: 120 } },
                     (text) => {
                         currentCode = text;
                         if (navigator.vibrate) navigator.vibrate(50);
