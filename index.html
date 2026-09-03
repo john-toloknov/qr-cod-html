@@ -159,7 +159,6 @@
     </div>
 
     <script>
-        // Вставьте сюда вашу актуальную ссылку на веб-приложение Google Apps Script («Блок 22»):
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentCode = "";
@@ -255,44 +254,43 @@
             startCamera();
         }
 
-async function sendDataToGoogleSheet() {
-    if (!currentCode) {
-        alert("Ошибка: серийный номер не найден!");
-        return;
-    }
+        async function sendDataToGoogleSheet() {
+            if (!currentCode) {
+                alert("Ошибка: серийный номер не найден!");
+                return;
+            }
 
-    const equipmentType = document.getElementById('equipment-type').value;
-    const installer = document.getElementById('installer').value;
-    const givenBy = "Толокнов Евгений";
-    
-    const submitBtn = document.getElementById('submit-btn');
-    const loaderText = document.getElementById('loader-text');
+            const equipmentType = document.getElementById('equipment-type').value;
+            const installer = document.getElementById('installer').value;
+            const givenBy = "Толокнов Евгений";
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const loaderText = document.getElementById('loader-text');
 
-    submitBtn.style.display = 'none';
-    loaderText.style.display = 'block';
+            submitBtn.style.display = 'none';
+            loaderText.style.display = 'block';
 
-    try {
-        // Убраны заголовки, вызывавшие блокировку CORS
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-                type: equipmentType,
-                serialNumber: currentCode,
-                installer: installer,
-                givenBy: givenBy
-            })
-        });
+            try {
+                // Используем обычный режим без no-cors, чтобы передать JSON
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        type: equipmentType,
+                        serialNumber: currentCode,
+                        installer: installer,
+                        givenBy: givenBy
+                    })
+                });
 
-        document.getElementById('step-form').classList.remove('active');
-        document.getElementById('success-screen').classList.add('active');
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
 
-    } catch (error) {
-        alert("Ошибка при отправке: " + error);
-        submitBtn.style.display = 'block';
-        loaderText.style.display = 'none';
-    }
-}
+            } catch (error) {
+                alert("Ошибка при отправке: " + error);
+                submitBtn.style.display = 'block';
+                loaderText.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
