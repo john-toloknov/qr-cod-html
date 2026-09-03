@@ -129,8 +129,8 @@
             </div>
 
             <div class="card">
-                <label for="given-by">Кто записывает (Кем выдан):</label>
-                <select id="given-by">
+                <label for="author">Кто записывает (Кем выдан):</label>
+                <select id="author">
                     <option value="Толокнов Евгений">Толокнов Евгений</option>
                     <option value="Лоос Виктор">Лоос Виктор</option>
                     <option value="Стрижко Дмитрий">Стрижко Дмитрий</option>
@@ -169,7 +169,6 @@
     </div>
 
     <script>
-        // СЮДА ВСТАВЬТЕ ВАШУ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT:
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentCode = "";
@@ -286,7 +285,7 @@
 
             const equipmentType = document.getElementById('equipment-type').value;
             const installer = document.getElementById('installer').value;
-            const givenBy = document.getElementById('given-by').value;
+            const author = document.getElementById('author').value;
             
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
@@ -298,7 +297,7 @@
             url.searchParams.append('type', equipmentType);
             url.searchParams.append('serialNumber', currentCode);
             url.searchParams.append('installer', installer);
-            url.searchParams.append('givenBy', givenBy);
+            url.searchParams.append('author', author);
 
             try {
                 await fetch(url.toString(), {
