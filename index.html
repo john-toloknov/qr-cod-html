@@ -42,6 +42,35 @@
             gap: 16px;
         }
 
+        /* Тройной переключатель режима (Роутер / Приставка / Кабель) */
+        .mode-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .mode-btn {
+            padding: 12px 4px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .mode-btn.active {
+            background: var(--beeline-yellow);
+            color: #000000;
+            border-color: var(--beeline-yellow);
+            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.2);
+        }
+
         /* Область камеры */
         #reader { 
             width: 100%; 
@@ -237,7 +266,7 @@
             color: var(--beeline-yellow);
         }
 
-        /* Блок автора внизу без контейнера и без подчеркивания, строго по центру в одну строку */
+        /* Блок автора внизу в одну строку по центру */
         .author-footer {
             margin-top: 12px;
             padding: 4px 0;
@@ -346,20 +375,32 @@
 
         <!-- ШАГ 1: СКАНИРОВАНИЕ / ВВОД -->
         <div id="step-scan" class="step active">
-            <div class="card">
-                <label>Тип оборудования</label>
+            <!-- Тройной переключатель режима (Роутер / Приставка / Кабель) -->
+            <div class="mode-selector">
+                <button type="button" class="mode-btn active" id="mode-router-btn" onclick="setEquipmentMode('router', '🛜 Роутер')">🛜 Роутер</button>
+                <button type="button" class="mode-btn" id="mode-stb-btn" onclick="setEquipmentMode('stb', '📺 Приставка')">📺 Приставка</button>
+                <button type="button" class="mode-btn" id="mode-cable-btn" onclick="setCableMode()">🔌 Кабель</button>
+            </div>
+
+            <!-- Карточка выбора наименования кабеля (видна только в режиме кабеля) -->
+            <div class="card" id="cable-name-card" style="display: none;">
+                <label>Наименование кабеля</label>
                 <div class="custom-dropdown">
-                    <button type="button" class="dropdown-select-btn" id="type-btn" onclick="toggleDropdown('type-list')">
-                        <span id="type-selected">🛜 Роутер</span>
+                    <button type="button" class="dropdown-select-btn" id="cable-btn" onclick="toggleDropdown('cable-list')">
+                        <span id="cable-selected">Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)</span>
                         <span>▼</span>
                     </button>
-                    <div class="dropdown-list" id="type-list">
-                        <div class="dropdown-item" onclick="selectOption('equipment-type', 'router', 'type-btn', '🛜 Роутер', 'type-list')">🛜 Роутер</div>
-                        <div class="dropdown-item" onclick="selectOption('equipment-type', 'stb', 'type-btn', '📺 Приставка', 'type-list')">📺 Приставка</div>
+                    <div class="dropdown-list" id="cable-list">
+                        <div class="dropdown-item" onclick="selectOption('cable-name', 'Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)', 'cable-btn', 'Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)', 'cable-list')">Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)</div>
+                        <div class="dropdown-item" onclick="selectOption('cable-name', 'Кабель F/UTP 2х2Хawg24/1 PE1 Cat. 5e', 'cable-btn', 'Кабель F/UTP 2х2Хawg24/1 PE1 Cat. 5e', 'cable-list')">Кабель F/UTP 2х2Хawg24/1 PE1 Cat. 5e</div>
+                        <div class="dropdown-item" onclick="selectOption('cable-name', 'Кабель U/UTP 4x2xAWG24/1 PVC Cat.5e (0.523)', 'cable-btn', 'Кабель U/UTP 4x2xAWG24/1 PVC Cat.5e (0.523)', 'cable-list')">Кабель U/UTP 4x2xAWG24/1 PVC Cat.5e (0.523)</div>
+                        <div class="dropdown-item" onclick="selectOption('cable-name', 'Кабель FTP 10х2х0,52 (Серийнный кабель)', 'cable-btn', 'Кабель FTP 10х2х0,52 (Серийнный кабель)', 'cable-list')">Кабель FTP 10х2х0,52 (Серийнный кабель)</div>
                     </div>
                 </div>
-                <input type="hidden" id="equipment-type" value="router">
+                <input type="hidden" id="cable-name" value="Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)">
             </div>
+
+            <input type="hidden" id="equipment-type" value="router">
             
             <div id="camera-section" style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);">Наведите камеру на штрих-код</div>
@@ -377,7 +418,7 @@
             <button class="btn action-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
 
-            <!-- Блок автора и кнопки без контейнера и подчеркивания, в одну строку по центру -->
+            <!-- Блок автора и кнопки в одну строку по центру -->
             <div class="author-footer">
                 <span class="author-text">Автор: Толокнов Евгений Алексеевич</span>
                 <button class="pulse-tg-btn" onclick="openAuthorChat()" title="Написать автору в Telegram">
@@ -395,13 +436,19 @@
             </div>
             
             <div class="card">
-                <label>Серийный номер</label>
+                <label id="step2-code-label">Серийный номер</label>
                 <div class="code-display" id="scanned-code-text"></div>
                 <button class="btn retry-btn" onclick="resetScanner()">Сканировать другой код 🔄</button>
             </div>
 
+            <!-- Поле для метража (только для кабеля) -->
+            <div class="card" id="cable-meters-card" style="display: none;">
+                <label>Метраж</label>
+                <input type="number" id="cable-meters-input" class="text-input" placeholder="Введите метраж, например: 100" min="1">
+            </div>
+
             <div class="card">
-                <label>Кто записывает (Кем выдан)</label>
+                <label>Кем выдан</label>
                 <div class="custom-dropdown">
                     <button type="button" class="dropdown-select-btn" id="author-btn" onclick="toggleDropdown('author-list')">
                         <span id="author-selected">Толокнов Евгений</span>
@@ -449,7 +496,7 @@
         <div id="success-screen">
             <div class="success-icon">✓</div>
             <h2 style="color: var(--text-main); margin: 0; font-size: 20px;">Успешно записано!</h2>
-            <p style="color: var(--text-muted); margin: 0; font-size: 13px;">Оборудование закреплено за монтажником.</p>
+            <p style="color: var(--text-muted); margin: 0; font-size: 13px;">Данные успешно отправлены в таблицу.</p>
             <button class="btn main-btn" onclick="resetScanner()" style="margin-top: 10px;">Сканировать следующее 📲</button>
         </div>
 
@@ -458,10 +505,38 @@
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
+        let currentMode = "equipment"; // 'equipment' или 'cable'
         let currentCode = "";
         let html5QrCode = null;
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
+
+        function setEquipmentMode(type, title) {
+            currentMode = "equipment";
+            document.getElementById('equipment-type').value = type;
+            
+            document.getElementById('mode-router-btn').classList.remove('active');
+            document.getElementById('mode-stb-btn').classList.remove('active');
+            document.getElementById('mode-cable-btn').classList.remove('active');
+
+            if (type === 'router') {
+                document.getElementById('mode-router-btn').classList.add('active');
+            } else {
+                document.getElementById('mode-stb-btn').classList.add('active');
+            }
+
+            document.getElementById('cable-name-card').style.display = 'none';
+        }
+
+        function setCableMode() {
+            currentMode = "cable";
+            
+            document.getElementById('mode-router-btn').classList.remove('active');
+            document.getElementById('mode-stb-btn').classList.remove('active');
+            document.getElementById('mode-cable-btn').classList.add('active');
+
+            document.getElementById('cable-name-card').style.display = 'flex';
+        }
 
         function openAuthorChat() {
             window.open('https://t.me/John_Toloknov', '_blank');
@@ -602,12 +677,23 @@
             document.getElementById('step-scan').classList.remove('active');
             document.getElementById('success-screen').classList.remove('active');
             document.getElementById('scanned-code-text').textContent = currentCode;
+
+            const metersCard = document.getElementById('cable-meters-card');
+            if (currentMode === 'cable') {
+                metersCard.style.display = 'flex';
+                document.getElementById('step2-code-label').textContent = 'Серийный номер кабеля';
+            } else {
+                metersCard.style.display = 'none';
+                document.getElementById('step2-code-label').textContent = 'Серийный номер';
+            }
+
             document.getElementById('step-form').classList.add('active');
         }
 
         async function resetScanner() {
             currentCode = "";
             document.getElementById('manual-serial-input').value = '';
+            document.getElementById('cable-meters-input').value = '';
             
             if (html5QrCode && isCameraRunning) {
                 try {
@@ -637,21 +723,35 @@
                 return;
             }
 
-            const equipmentType = document.getElementById('equipment-type').value;
-            const installer = document.getElementById('installer').value;
             const author = document.getElementById('author').value;
+            const installer = document.getElementById('installer').value;
+
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            url.searchParams.append('mode', currentMode); 
+            url.searchParams.append('serialNumber', currentCode);
+            url.searchParams.append('author', author);
+            url.searchParams.append('installer', installer);
+
+            if (currentMode === 'equipment') {
+                const equipmentType = document.getElementById('equipment-type').value;
+                url.searchParams.append('type', equipmentType);
+            } else {
+                const cableName = document.getElementById('cable-name').value;
+                const meters = document.getElementById('cable-meters-input').value.trim();
+                
+                if (!meters) {
+                    alert("Пожалуйста, укажите метраж кабеля!");
+                    return;
+                }
+                url.searchParams.append('cableName', cableName);
+                url.searchParams.append('meters', meters);
+            }
             
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
 
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
-
-            const url = new URL(GOOGLE_SCRIPT_URL);
-            url.searchParams.append('type', equipmentType);
-            url.searchParams.append('serialNumber', currentCode);
-            url.searchParams.append('installer', installer);
-            url.searchParams.append('author', author);
 
             const img = new Image();
             img.src = url.toString();
