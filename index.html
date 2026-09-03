@@ -158,47 +158,46 @@
 
     </div>
 
-    <!-- Скрытый iframe для отправки данных без CORS-ошибок -->
+    <!-- Скрытый iframe для отправки данных -->
     <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
 
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentCode = "";
-        const html5QrCode = new Html5Qrcode("reader");
+        let html5QrCode = null;
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
 
-        function startCamera() {
-            if (isCameraRunning) return;
-            
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 15, qrbox: { width: 280, height: 140 } },
-                (text) => {
-                    currentCode = text;
-                    if (navigator.vibrate) navigator.vibrate(50);
-                    stopCameraAndShowForm();
-                }
-            ).then(() => {
+        async function startCamera() {
+            // Очищаем контейнер, чтобы гарантированно сбросить зависшие потоки камеры
+            document.getElementById('reader').innerHTML = '';
+            html5QrCode = new Html5Qrcode("reader");
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 280, height: 140 } },
+                    (text) => {
+                        currentCode = text;
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        stopCameraAndShowForm();
+                    }
+                );
                 isCameraRunning = true;
-            }).catch((err) => {
-                console.log("Ошибка камеры:", err);
-            });
+            } catch (err) {
+                console.log("Ошибка запуска камеры:", err);
+            }
         }
 
-        function stopCameraAndShowForm() {
-            if (isCameraRunning) {
-                html5QrCode.stop().then(() => {
-                    isCameraRunning = false;
-                    showFormStep();
-                }).catch(() => {
-                    isCameraRunning = false;
-                    showFormStep();
-                });
-            } else {
-                showFormStep();
+        async function stopCameraAndShowForm() {
+            if (isCameraRunning && html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) {}
+                isCameraRunning = false;
             }
+            showFormStep();
         }
 
         startCamera();
@@ -206,8 +205,9 @@
         async function handleFile(e) {
             if (e.target.files && e.target.files.length > 0) {
                 const file = e.target.files[0];
-                if (isCameraRunning) {
-                    try { await html5QrCode.stop(); isCameraRunning = false; } catch(e) {}
+                if (isCameraRunning && html5QrCode) {
+                    try { await html5QrCode.stop(); } catch(e) {}
+                    isCameraRunning = false;
                 }
 
                 const reader = new FileReader();
@@ -246,15 +246,25 @@
             document.getElementById('step-form').classList.add('active');
         }
 
-        function resetScanner() {
+        async function resetScanner() {
             currentCode = "";
+            if (isCameraRunning && html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) {}
+                isCameraRunning = false;
+            }
+            
             document.getElementById('success-screen').classList.remove('active');
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
             document.getElementById('file-input').value = '';
             document.getElementById('submit-btn').style.display = 'block';
             document.getElementById('loader-text').style.display = 'none';
-            startCamera();
+            
+            setTimeout(() => {
+                startCamera();
+            }, 300);
         }
 
         function sendDataToGoogleSheet() {
@@ -273,7 +283,7 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Создаем динамическую форму для отправки через скрытый iframe (обход CORS на 100%)
+            // Отправка через скрытую форму в iframe
             const form = document.createElement('form');
             form.action = GOOGLE_SCRIPT_URL;
             form.method = 'POST';
@@ -298,7 +308,6 @@
             form.submit();
             document.body.removeChild(form);
 
-            // Так как отправка идет в фоне через iframe, сразу показываем экран успеха
             setTimeout(() => {
                 document.getElementById('step-form').classList.remove('active');
                 document.getElementById('success-screen').classList.add('active');
