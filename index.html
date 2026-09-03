@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер оборудования</title>
+    <title>Сканер оборудования | Beeline</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --border-color: #334155;
-            --accent: #38bdf8;
-            --accent-hover: #0ea5e9;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-color: #0b0b0b;
+            --card-bg: #161616;
+            --card-border: #262626;
+            --beeline-yellow: #FFCC00;
+            --beeline-yellow-hover: #ffdb4d;
+            --text-main: #ffffff;
+            --text-muted: #888888;
             --success: #22c55e;
             --danger: #ef4444;
         }
@@ -40,15 +40,15 @@
             gap: 16px;
         }
 
-        /* Аккуратная и компактная область камеры */
+        /* Область камеры */
         #reader { 
             width: 100%; 
             height: 220px !important; 
             border-radius: 16px; 
             overflow: hidden; 
             background: #000;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--card-border);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
         }
         
         #reader video {
@@ -57,78 +57,118 @@
             height: 100% !important;
         }
 
-        /* Современные карточки */
+        /* Карточки */
         .card {
             background: var(--card-bg);
             padding: 16px;
             border-radius: 16px;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
             display: flex;
             flex-direction: column;
             gap: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .code-display {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-family: monospace;
             font-size: 16px;
-            font-weight: 600;
-            color: var(--accent);
-            background: #0f172a;
+            font-weight: 700;
+            color: var(--beeline-yellow);
+            background: #0a0a0a;
             padding: 12px;
             border-radius: 10px;
             word-break: break-all;
             text-align: center;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
         }
 
         label {
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        /* Выпадающие списки и инпуты с идеальным позиционированием стрелки */
-        .select-wrapper {
+        /* Кастомный селектор (замена системной шторки) */
+        .custom-dropdown {
             position: relative;
             width: 100%;
         }
 
-        select, input {
+        .dropdown-select-btn {
             width: 100%;
-            padding: 12px 40px 12px 14px; /* Справа оставляем место под стрелочку, чтобы текст не наезжал */
+            padding: 12px 14px;
             border-radius: 10px;
-            border: 1px solid var(--border-color);
-            background: #0f172a;
+            border: 1px solid var(--card-border);
+            background: #0a0a0a;
             color: var(--text-main);
             font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .dropdown-select-btn:hover {
+            border-color: var(--beeline-yellow);
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: #1c1c1c;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-sizing: border-box;
+        }
+
+        .dropdown-list.open {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 14px;
+            font-size: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+            border-bottom: 1px solid #222;
+            transition: background 0.15s;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 204, 0, 0.15);
+            color: var(--beeline-yellow);
+        }
+
+        /* Обычный селект для типа оборудования (оставляем компактным) */
+        .native-select-wrap {
+            position: relative;
+        }
+        .native-select-wrap select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #0a0a0a;
+            color: var(--text-main);
+            font-size: 14px;
             outline: none;
             appearance: none;
-            -webkit-appearance: none;
-            transition: all 0.2s ease;
-        }
-
-        /* Идеально выровненная стрелочка через псевдоэлемент или абсолютное позиционирование */
-        .select-wrapper::after {
-            content: "";
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 6px solid var(--text-muted);
-            pointer-events: none;
-        }
-
-        select:focus, input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
         }
 
         /* Кнопки */
@@ -139,7 +179,7 @@
             border-radius: 12px;
             cursor: pointer;
             width: 100%;
-            font-weight: 600;
+            font-weight: 700;
             transition: transform 0.1s ease, background-color 0.2s ease;
             display: flex;
             align-items: center;
@@ -152,12 +192,14 @@
             transform: scale(0.98);
         }
 
+        /* Фирменная желтая кнопка Beeline */
         .main-btn { 
-            background-color: var(--accent); 
-            color: #0f172a; 
+            background-color: var(--beeline-yellow); 
+            color: #000000; 
+            box-shadow: 0 4px 14px rgba(255, 204, 0, 0.2);
         }
         .main-btn:hover {
-            background-color: var(--accent-hover);
+            background-color: var(--beeline-yellow-hover);
         }
 
         .retry-btn { 
@@ -171,10 +213,7 @@
         .file-btn { 
             background-color: var(--card-bg); 
             color: var(--text-main); 
-            border: 1px solid var(--border-color);
-        }
-        .file-btn:hover {
-            background-color: #273448;
+            border: 1px solid var(--card-border);
         }
 
         #file-input { display: none; }
@@ -197,7 +236,6 @@
             flex-direction: column;
             gap: 16px;
             align-items: center;
-            animation: fadeIn 0.25s ease;
         }
 
         .success-icon {
@@ -215,10 +253,10 @@
 
         .loader {
             font-size: 14px;
-            color: var(--accent);
+            color: var(--beeline-yellow);
             display: none;
             text-align: center;
-            font-weight: 500;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -229,7 +267,7 @@
         <div id="step-scan" class="step active">
             <div class="card">
                 <label for="equipment-type">Тип оборудования</label>
-                <div class="select-wrapper">
+                <div class="native-select-wrap">
                     <select id="equipment-type">
                         <option value="router">📡 Роутер</option>
                         <option value="stb">📺 Приставка</option>
@@ -246,7 +284,7 @@
 
         <!-- ШАГ 2 -->
         <div id="step-form" class="step">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 600; font-size: 14px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
                 <span>✓</span> Код успешно считан
             </div>
             
@@ -256,35 +294,47 @@
                 <button class="btn retry-btn" onclick="resetScanner()">Сканировать другой код 🔄</button>
             </div>
 
+            <!-- Кастомный список: Кто записывает -->
             <div class="card">
-                <label for="author">Кто записывает (Кем выдан)</label>
-                <div class="select-wrapper">
-                    <select id="author">
-                        <option value="Толокнов Евгений">Толокнов Евгений</option>
-                        <option value="Лоос Виктор">Лоос Виктор</option>
-                        <option value="Стрижко Дмитрий">Стрижко Дмитрий</option>
-                        <option value="Какалова Мария">Какалова Мария</option>
-                    </select>
+                <label>Кто записывает (Кем выдан)</label>
+                <div class="custom-dropdown">
+                    <button type="button" class="dropdown-select-btn" id="author-btn" onclick="toggleDropdown('author-list')">
+                        <span id="author-selected">Толокнов Евгений</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dropdown-list" id="author-list">
+                        <div class="dropdown-item" onclick="selectOption('author', 'Толокнов Евгений', 'author-btn', 'author-selected', 'author-list')">Толокнов Евгений</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Лоос Виктор', 'author-btn', 'author-selected', 'author-list')">Лоос Виктор</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Стрижко Дмитрий', 'author-btn', 'author-selected', 'author-list')">Стрижко Дмитрий</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Какалова Мария', 'author-btn', 'author-selected', 'author-list')">Какалова Мария</div>
+                    </div>
                 </div>
+                <input type="hidden" id="author" value="Толокнов Евгений">
             </div>
 
+            <!-- Кастомный список: Монтажник -->
             <div class="card">
-                <label for="installer">Кому выдан (Монтажник)</label>
-                <div class="select-wrapper">
-                    <select id="installer">
-                        <option value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">Курмангалиев Тимур</option>
-                        <option value="Стрижко Дмитрий Юрьевич,Бригада №3 (Темиртау)">Стрижко Дмитрий</option>
-                        <option value="Новиков Иван Викторович,Бригада №4 (Темиртау)">Новиков Иван</option>
-                        <option value="Лоос Виктор Геннадьевич,Бригада №5 (Темиртау)">Лоос Виктор</option>
-                        <option value="Марчуков Андрей Артемович,Бригада №6 (Темиртау)">Марчуков Андрей</option>
-                        <option value="Иванусь Аркадий Александрович,Бригада №7 (Темиртау)">Иванусь Аркадий</option>
-                        <option value="Павленко Николай Александрович,Бригада №8 (Темиртау)">Павленко Николай</option>
-                        <option value="Седухин Владимир Игоревич,Бригада №9 (Темиртау)">Седухин Владимир</option>
-                        <option value="Янковицкий Сергей Валерьевич,Бригада №10 (Темиртау)">Янковицкий Сергей</option>
-                        <option value="Тарыца Захар Васильевич,Бригада №11 (Темиртау)">Тарыца Захар</option>
-                        <option value="Кайзер Павел Иванович,Бригада №12 (Темиртау)">Кайзер Павел</option>
-                    </select>
+                <label>Кому выдан (Монтажник)</label>
+                <div class="custom-dropdown">
+                    <button type="button" class="dropdown-select-btn" id="installer-btn" onclick="toggleDropdown('installer-list')">
+                        <span id="installer-selected">Курмангалиев Тимур</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dropdown-list" id="installer-list">
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)', 'installer-btn', 'Курмангалиев Тимур', 'installer-list')">Курмангалиев Тимур</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Стрижко Дмитрий Юрьевич,Бригада №3 (Темиртау)', 'installer-btn', 'Стрижко Дмитрий', 'installer-list')">Стрижко Дмитрий</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Новиков Иван Викторович,Бригада №4 (Темиртау)', 'installer-btn', 'Новиков Иван', 'installer-list')">Новиков Иван</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Лоос Виктор Геннадьевич,Бригада №5 (Темиртау)', 'installer-btn', 'Лоос Виктор', 'installer-list')">Лоос Виктор</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Марчуков Андрей Артемович,Бригада №6 (Темиртау)', 'installer-btn', 'Марчуков Андрей', 'installer-list')">Марчуков Андрей</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Иванусь Аркадий Александрович,Бригада №7 (Темиртау)', 'installer-btn', 'Иванусь Аркадий', 'installer-list')">Иванусь Аркадий</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Павленко Николай Александрович,Бригада №8 (Темиртау)', 'installer-btn', 'Павленко Николай', 'installer-list')">Павленко Николай</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Седухин Владимир Игоревич,Бригада №9 (Темиртау)', 'installer-btn', 'Седухин Владимир', 'installer-list')">Седухин Владимир</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Янковицкий Сергей Валерьевич,Бригада №10 (Темиртау)', 'installer-btn', 'Янковицкий Сергей', 'installer-list')">Янковицкий Сергей</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Тарыца Захар Васильевич,Бригада №11 (Темиртау)', 'installer-btn', 'Тарыца Захар', 'installer-list')">Тарыца Захар</div>
+                        <div class="dropdown-item" onclick="selectOption('installer', 'Кайзер Павел Иванович,Бригада №12 (Темиртау)', 'installer-btn', 'Кайзер Павел', 'installer-list')">Кайзер Павел</div>
+                    </div>
                 </div>
+                <input type="hidden" id="installer" value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">
             </div>
 
             <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать в таблицу 🚀</button>
@@ -308,6 +358,28 @@
         let html5QrCode = null;
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
+
+        // Логика кастомных выпадающих списков
+        function toggleDropdown(listId) {
+            // Закрыть остальные
+            document.querySelectorAll('.dropdown-list').forEach(el => {
+                if(el.id !== listId) el.classList.remove('open');
+            });
+            document.getElementById(listId).classList.toggle('open');
+        }
+
+        function selectOption(hiddenInputId, value, btnId, displayText, listId) {
+            document.getElementById(hiddenInputId).value = value;
+            document.getElementById(btnId).querySelector('span').textContent = displayText;
+            document.getElementById(listId).classList.remove('open');
+        }
+
+        // Закрывать при клике вне списков
+        window.onclick = function(event) {
+            if (!event.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-list').forEach(el => el.classList.remove('open'));
+            }
+        }
 
         async function startCamera() {
             if (isCameraRunning) return;
