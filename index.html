@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер оборудования</title>
-    <!-- Возвращаем html5-qrcode для нормальной рамки-прицела -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
@@ -169,6 +168,9 @@
 
     </div>
 
+    <!-- Скрытый iframe для бесшовной отправки POST-запроса без перезагрузки страницы -->
+    <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
+
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
@@ -281,7 +283,7 @@
             }, 500);
         }
 
-        async function sendDataToGoogleSheet() {
+        function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
@@ -297,38 +299,36 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            const payload = {
+            // Создаем динамическую форму для отправки POST-запроса без CORS-ошибок
+            const form = document.createElement('form');
+            form.action = GOOGLE_SCRIPT_URL;
+            form.method = 'POST';
+            form.target = 'hidden-iframe'; // Отправка в скрытый iframe
+
+            const fields = {
                 type: equipmentType,
                 serialNumber: currentCode,
                 installer: installer,
                 givenBy: givenBy
             };
 
-            try {
-                // Отправляем через fetch POST с JSON. 
-                // Важно: в Apps Script настроен CORS-ответ, поэтому данные дойдут корректно.
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8', // Обход CORS-ограничений Google Apps Script для POST
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                setTimeout(() => {
-                    document.getElementById('step-form').classList.remove('active');
-                    document.getElementById('success-screen').classList.add('active');
-                }, 400);
-
-            } catch (error) {
-                console.error("Ошибка отправки:", error);
-                // На всякий случай дублируем через пассивную отправку если сеть заблокировала fetch
-                alert("Данные отправлены!");
-                setTimeout(() => {
-                    document.getElementById('step-form').classList.remove('active');
-                    document.getElementById('success-screen').classList.add('active');
-                }, 400);
+            for (const key in fields) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
             }
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            // Показываем экран успеха через секунду
+            setTimeout(() => {
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+            }, 800);
         }
     </script>
 </body>
