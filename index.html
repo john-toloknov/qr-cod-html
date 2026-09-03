@@ -90,7 +90,36 @@
             letter-spacing: 0.5px;
         }
 
-        /* Кастомный выпадающий список (полностью заменяет системный) */
+        /* Поле ввода для ручного режима */
+        .manual-input-box {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .manual-input-box.active {
+            display: flex;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #0a0a0a;
+            color: var(--text-main);
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .text-input:focus {
+            border-color: var(--beeline-yellow);
+        }
+
+        /* Кастомный выпадающий список */
         .custom-dropdown {
             position: relative;
             width: 100%;
@@ -199,6 +228,18 @@
             border: 1px solid var(--card-border);
         }
 
+        .secondary-btn {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px dashed var(--card-border);
+            font-size: 13px;
+            padding: 10px;
+        }
+        .secondary-btn:hover {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
         #file-input { display: none; }
         
         .step { display: none; }
@@ -246,7 +287,7 @@
 <body>
     <div class="container">
 
-        <!-- ШАГ 1 -->
+        <!-- ШАГ 1: СКАНИРОВАНИЕ / ВВОД -->
         <div id="step-scan" class="step active">
             <div class="card">
                 <label>Тип оборудования</label>
@@ -263,17 +304,27 @@
                 <input type="hidden" id="equipment-type" value="router">
             </div>
             
-            <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);">Наведите камеру на штрих-код</div>
-            <div id="reader"></div>
+            <div id="camera-section" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);">Наведите камеру на штрих-код</div>
+                <div id="reader"></div>
+            </div>
+
+            <!-- Блок ручного ввода -->
+            <div class="card manual-input-box" id="manual-box">
+                <label>Введите серийный номер вручную</label>
+                <input type="text" id="manual-serial-input" class="text-input" placeholder="Например: 6970212510083">
+                <button class="btn main-btn" onclick="submitManualCode()">Готово ✔</button>
+            </div>
             
+            <button class="btn secondary-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
             <button class="btn file-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
-        <!-- ШАГ 2 -->
+        <!-- ШАГ 2: ФОРМА И ОТПРАВКА -->
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
-                <span>✓</span> Код успешно считан
+                <span>✓</span> Серийный номер принят
             </div>
             
             <div class="card">
@@ -347,7 +398,7 @@
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
 
-        // Логика кастомных выпадающих списков
+        // Переключение кастомных выпадающих списков
         function toggleDropdown(listId) {
             document.querySelectorAll('.dropdown-list').forEach(el => {
                 if(el.id !== listId) el.classList.remove('open');
@@ -365,6 +416,43 @@
             if (!event.target.closest('.custom-dropdown')) {
                 document.querySelectorAll('.dropdown-list').forEach(el => el.classList.remove('open'));
             }
+        }
+
+        // Управление ручным вводом
+        async function toggleManualInput() {
+            const manualBox = document.getElementById('manual-box');
+            const cameraSection = document.getElementById('camera-section');
+            const toggleBtn = document.getElementById('toggle-manual-btn');
+
+            if (!manualBox.classList.contains('active')) {
+                // Останавливаем камеру при переходе на ручной ввод
+                if (html5QrCode && isCameraRunning) {
+                    try {
+                        await html5QrCode.stop();
+                        await html5QrCode.clear();
+                    } catch (e) {}
+                    isCameraRunning = false;
+                }
+                cameraSection.style.display = 'none';
+                manualBox.classList.add('active');
+                toggleBtn.textContent = 'Включить камеру 📷';
+                document.getElementById('manual-serial-input').focus();
+            } else {
+                manualBox.classList.remove('active');
+                cameraSection.style.display = 'flex';
+                toggleBtn.textContent = 'Ввести вручную ⌨️';
+                startCamera();
+            }
+        }
+
+        async function submitManualCode() {
+            const inputVal = document.getElementById('manual-serial-input').value.trim();
+            if (!inputVal) {
+                alert("Пожалуйста, введите серийный номер!");
+                return;
+            }
+            currentCode = inputVal;
+            showFormStep();
         }
 
         async function startCamera() {
@@ -450,6 +538,8 @@
 
         async function resetScanner() {
             currentCode = "";
+            document.getElementById('manual-serial-input').value = '';
+            
             if (html5QrCode && isCameraRunning) {
                 try {
                     await html5QrCode.stop();
@@ -458,6 +548,10 @@
                 isCameraRunning = false;
             }
             
+            document.getElementById('manual-box').classList.remove('active');
+            document.getElementById('camera-section').style.display = 'flex';
+            document.getElementById('toggle-manual-btn').textContent = 'Ввести вручную ⌨️';
+
             document.getElementById('success-screen').classList.remove('active');
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
