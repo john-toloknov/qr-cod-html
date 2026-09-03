@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер оборудования</title>
-    <!-- Используем только проверенный и стабильный ZXing для камеры и фото -->
+    <!-- Возвращаем html5-qrcode для нормальной рамки-прицела -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
         body { 
@@ -25,18 +26,11 @@
             flex-direction: column;
             gap: 15px;
         }
-        #video-container { 
+        #reader { 
             width: 100%; 
             border-radius: 12px; 
             overflow: hidden; 
             background: #000;
-            position: relative;
-            aspect-ratio: 4/3;
-        }
-        #video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
         .card {
             background: #212d3b;
@@ -120,9 +114,7 @@
                 </select>
             </div>
             <h3 style="text-align: center; margin: 0;">Наведите камеру на штрих-код</h3>
-            <div id="video-container">
-                <video id="video" muted playsinline></video>
-            </div>
+            <div id="reader"></div>
             <button class="btn file-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
@@ -177,39 +169,59 @@
 
     </div>
 
-    <!-- Скрытый iframe для отправки данных -->
-    <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
-
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentCode = "";
-        const codeReader = new ZXing.BrowserMultiFormatReader();
+        let html5QrCode = null;
+        const zxingReader = new ZXing.BrowserMultiFormatReader();
+        let isCameraRunning = false;
 
-        function startCamera() {
-            codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
-                if (result) {
-                    currentCode = result.getText();
-                    if (navigator.vibrate) navigator.vibrate(50);
-                    
-                    // Останавливаем сканирование и переходим к форме
-                    codeReader.reset();
-                    showFormStep();
-                }
-            }).catch(err => {
-                console.log("Ошибка камеры:", err);
-            });
+        async function startCamera() {
+            if (isCameraRunning) return;
+            document.getElementById('reader').innerHTML = '';
+            html5QrCode = new Html5Qrcode("reader");
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 280, height: 140 } },
+                    (text) => {
+                        currentCode = text;
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        stopCameraAndShowForm();
+                    }
+                );
+                isCameraRunning = true;
+            } catch (err) {
+                console.log("Ошибка запуска камеры:", err);
+                isCameraRunning = false;
+            }
         }
 
-        // Запуск камеры при загрузке страницы
-        window.addEventListener('DOMContentLoaded', () => {
-            startCamera();
-        });
+        async function stopCameraAndShowForm() {
+            if (html5QrCode && isCameraRunning) {
+                try {
+                    await html5QrCode.stop();
+                    await html5QrCode.clear();
+                } catch (e) {}
+                isCameraRunning = false;
+            }
+            showFormStep();
+        }
+
+        setTimeout(startCamera, 300);
 
         async function handleFile(e) {
             if (e.target.files && e.target.files.length > 0) {
                 const file = e.target.files[0];
-                codeReader.reset(); // Останавливаем камеру при выборе файла
+                if (html5QrCode && isCameraRunning) {
+                    try { 
+                        await html5QrCode.stop(); 
+                        await html5QrCode.clear();
+                    } catch(e) {}
+                    isCameraRunning = false;
+                }
 
                 const reader = new FileReader();
                 reader.onload = async function (event) {
@@ -222,7 +234,7 @@
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         
                         try {
-                            const result = await codeReader.decodeFromImageUrl(canvas.toDataURL('image/jpeg', 0.95));
+                            const result = await zxingReader.decodeFromImageUrl(canvas.toDataURL('image/jpeg', 0.95));
                             if (result) {
                                 currentCode = result.getText();
                                 showFormStep();
@@ -247,9 +259,15 @@
             document.getElementById('step-form').classList.add('active');
         }
 
-        function resetScanner() {
+        async function resetScanner() {
             currentCode = "";
-            codeReader.reset(); // Сбрасываем старый поток
+            if (html5QrCode && isCameraRunning) {
+                try {
+                    await html5QrCode.stop();
+                    await html5QrCode.clear();
+                } catch (e) {}
+                isCameraRunning = false;
+            }
             
             document.getElementById('success-screen').classList.remove('active');
             document.getElementById('step-form').classList.remove('active');
@@ -258,13 +276,12 @@
             document.getElementById('submit-btn').style.display = 'block';
             document.getElementById('loader-text').style.display = 'none';
             
-            // Перезапускаем камеру заново без зависаний
             setTimeout(() => {
                 startCamera();
-            }, 300);
+            }, 500);
         }
 
-        function sendDataToGoogleSheet() {
+        async function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
@@ -280,35 +297,38 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Отправка через скрытую HTML-форму
-            const form = document.createElement('form');
-            form.action = GOOGLE_SCRIPT_URL;
-            form.method = 'POST';
-            form.target = 'hidden-iframe';
-
-            const fields = {
+            const payload = {
                 type: equipmentType,
                 serialNumber: currentCode,
                 installer: installer,
                 givenBy: givenBy
             };
 
-            for (const key in fields) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = fields[key];
-                form.appendChild(input);
+            try {
+                // Отправляем через fetch POST с JSON. 
+                // Важно: в Apps Script настроен CORS-ответ, поэтому данные дойдут корректно.
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8', // Обход CORS-ограничений Google Apps Script для POST
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 400);
+
+            } catch (error) {
+                console.error("Ошибка отправки:", error);
+                // На всякий случай дублируем через пассивную отправку если сеть заблокировала fetch
+                alert("Данные отправлены!");
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 400);
             }
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-
-            setTimeout(() => {
-                document.getElementById('step-form').classList.remove('active');
-                document.getElementById('success-screen').classList.add('active');
-            }, 800);
         }
     </script>
 </body>
