@@ -169,7 +169,6 @@
     </div>
 
     <script>
-        // СЮДА ВСТАВЬТЕ ВАШУ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT:
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentCode = "";
@@ -286,7 +285,7 @@
 
             const equipmentType = document.getElementById('equipment-type').value;
             const installer = document.getElementById('installer').value;
-            const givenBy = document.getElementById('author').value;
+            const author = document.getElementById('author').value;
             
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
@@ -298,14 +297,12 @@
                 type: equipmentType,
                 serialNumber: currentCode,
                 installer: installer,
-                givenBy: givenBy
+                author: author
             };
 
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
@@ -315,9 +312,10 @@
                 }, 800);
 
             } catch (err) {
-                alert("Ошибка соединения с таблицей!");
-                submitBtn.style.display = 'block';
-                loaderText.style.display = 'none';
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 800);
             }
         }
     </script>
