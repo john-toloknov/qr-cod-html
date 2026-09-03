@@ -90,7 +90,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* Кастомный селектор (замена системной шторки) */
+        /* Кастомный выпадающий список (полностью заменяет системный) */
         .custom-dropdown {
             position: relative;
             width: 100%;
@@ -155,22 +155,6 @@
             color: var(--beeline-yellow);
         }
 
-        /* Обычный селект для типа оборудования (оставляем компактным) */
-        .native-select-wrap {
-            position: relative;
-        }
-        .native-select-wrap select {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid var(--card-border);
-            background: #0a0a0a;
-            color: var(--text-main);
-            font-size: 14px;
-            outline: none;
-            appearance: none;
-        }
-
         /* Кнопки */
         .btn {
             border: none;
@@ -192,7 +176,6 @@
             transform: scale(0.98);
         }
 
-        /* Фирменная желтая кнопка Beeline */
         .main-btn { 
             background-color: var(--beeline-yellow); 
             color: #000000; 
@@ -266,13 +249,18 @@
         <!-- ШАГ 1 -->
         <div id="step-scan" class="step active">
             <div class="card">
-                <label for="equipment-type">Тип оборудования</label>
-                <div class="native-select-wrap">
-                    <select id="equipment-type">
-                        <option value="router">📡 Роутер</option>
-                        <option value="stb">📺 Приставка</option>
-                    </select>
+                <label>Тип оборудования</label>
+                <div class="custom-dropdown">
+                    <button type="button" class="dropdown-select-btn" id="type-btn" onclick="toggleDropdown('type-list')">
+                        <span id="type-selected">🛜 Роутер</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dropdown-list" id="type-list">
+                        <div class="dropdown-item" onclick="selectOption('equipment-type', 'router', 'type-btn', '🛜 Роутер', 'type-list')">🛜 Роутер</div>
+                        <div class="dropdown-item" onclick="selectOption('equipment-type', 'stb', 'type-btn', '📺 Приставка', 'type-list')">📺 Приставка</div>
+                    </div>
                 </div>
+                <input type="hidden" id="equipment-type" value="router">
             </div>
             
             <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);">Наведите камеру на штрих-код</div>
@@ -303,10 +291,10 @@
                         <span>▼</span>
                     </button>
                     <div class="dropdown-list" id="author-list">
-                        <div class="dropdown-item" onclick="selectOption('author', 'Толокнов Евгений', 'author-btn', 'author-selected', 'author-list')">Толокнов Евгений</div>
-                        <div class="dropdown-item" onclick="selectOption('author', 'Лоос Виктор', 'author-btn', 'author-selected', 'author-list')">Лоос Виктор</div>
-                        <div class="dropdown-item" onclick="selectOption('author', 'Стрижко Дмитрий', 'author-btn', 'author-selected', 'author-list')">Стрижко Дмитрий</div>
-                        <div class="dropdown-item" onclick="selectOption('author', 'Какалова Мария', 'author-btn', 'author-selected', 'author-list')">Какалова Мария</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Толокнов Евгений', 'author-btn', 'Толокнов Евгений', 'author-list')">Толокнов Евгений</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Лоос Виктор', 'author-btn', 'Лоос Виктор', 'author-list')">Лоос Виктор</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Стрижко Дмитрий', 'author-btn', 'Стрижко Дмитрий', 'author-list')">Стрижко Дмитрий</div>
+                        <div class="dropdown-item" onclick="selectOption('author', 'Какалова Мария', 'author-btn', 'Какалова Мария', 'author-list')">Какалова Мария</div>
                     </div>
                 </div>
                 <input type="hidden" id="author" value="Толокнов Евгений">
@@ -361,7 +349,6 @@
 
         // Логика кастомных выпадающих списков
         function toggleDropdown(listId) {
-            // Закрыть остальные
             document.querySelectorAll('.dropdown-list').forEach(el => {
                 if(el.id !== listId) el.classList.remove('open');
             });
@@ -374,7 +361,6 @@
             document.getElementById(listId).classList.remove('open');
         }
 
-        // Закрывать при клике вне списков
         window.onclick = function(event) {
             if (!event.target.closest('.custom-dropdown')) {
                 document.querySelectorAll('.dropdown-list').forEach(el => el.classList.remove('open'));
