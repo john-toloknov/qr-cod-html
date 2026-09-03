@@ -277,7 +277,7 @@
             setTimeout(() => { startCamera(); }, 500);
         }
 
-        async function sendDataToGoogleSheet() {
+        function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
@@ -293,30 +293,21 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            const payload = {
-                type: equipmentType,
-                serialNumber: currentCode,
-                installer: installer,
-                author: author
-            };
+            // Формируем GET-запрос через изображение (100% обход блокировок CORS у Google)
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            url.searchParams.append('type', equipmentType);
+            url.searchParams.append('serialNumber', currentCode);
+            url.searchParams.append('installer', installer);
+            url.searchParams.append('author', author);
 
-            try {
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
+            const img = new Image();
+            img.src = url.toString();
 
-                setTimeout(() => {
-                    document.getElementById('step-form').classList.remove('active');
-                    document.getElementById('success-screen').classList.add('active');
-                }, 800);
-
-            } catch (err) {
-                setTimeout(() => {
-                    document.getElementById('step-form').classList.remove('active');
-                    document.getElementById('success-screen').classList.add('active');
-                }, 800);
-            }
+            // Через 1 секунду переключаем экран на успех (запрос улетел мгновенно)
+            setTimeout(() => {
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+            }, 1000);
         }
     </script>
 </body>
