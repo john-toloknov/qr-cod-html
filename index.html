@@ -168,6 +168,9 @@
 
     </div>
 
+    <!-- Скрытый iframe для стабильной отправки без CORS -->
+    <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
+
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
@@ -177,6 +180,8 @@
         let isCameraRunning = false;
 
         async function startCamera() {
+            if (isCameraRunning) return;
+            
             document.getElementById('reader').innerHTML = '';
             html5QrCode = new Html5Qrcode("reader");
 
@@ -193,26 +198,34 @@
                 isCameraRunning = true;
             } catch (err) {
                 console.log("Ошибка запуска камеры:", err);
+                isCameraRunning = false;
             }
         }
 
         async function stopCameraAndShowForm() {
-            if (isCameraRunning && html5QrCode) {
+            if (html5QrCode && isCameraRunning) {
                 try {
                     await html5QrCode.stop();
-                } catch (e) {}
+                    await html5QrCode.clear();
+                } catch (e) {
+                    console.log("Ошибка остановки:", e);
+                }
                 isCameraRunning = false;
             }
             showFormStep();
         }
 
-        startCamera();
+        // Запуск при старте
+        setTimeout(startCamera, 300);
 
         async function handleFile(e) {
             if (e.target.files && e.target.files.length > 0) {
                 const file = e.target.files[0];
-                if (isCameraRunning && html5QrCode) {
-                    try { await html5QrCode.stop(); } catch(e) {}
+                if (html5QrCode && isCameraRunning) {
+                    try { 
+                        await html5QrCode.stop(); 
+                        await html5QrCode.clear();
+                    } catch(e) {}
                     isCameraRunning = false;
                 }
 
@@ -254,9 +267,10 @@
 
         async function resetScanner() {
             currentCode = "";
-            if (isCameraRunning && html5QrCode) {
+            if (html5QrCode && isCameraRunning) {
                 try {
                     await html5QrCode.stop();
+                    await html5QrCode.clear();
                 } catch (e) {}
                 isCameraRunning = false;
             }
@@ -268,12 +282,13 @@
             document.getElementById('submit-btn').style.display = 'block';
             document.getElementById('loader-text').style.display = 'none';
             
+            // Даем браузеру время освободить поток камеры перед повторным стартом
             setTimeout(() => {
                 startCamera();
-            }, 300);
+            }, 600);
         }
 
-        async function sendDataToGoogleSheet() {
+        function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
@@ -289,34 +304,36 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            const payload = {
+            // Отправка через скрытую HTML-форму напрямую в Apps Script (гарантирует доставку всех параметров)
+            const form = document.createElement('form');
+            form.action = GOOGLE_SCRIPT_URL;
+            form.method = 'POST';
+            form.target = 'hidden-iframe';
+
+            const fields = {
                 type: equipmentType,
                 serialNumber: currentCode,
                 installer: installer,
                 givenBy: givenBy
             };
 
-            try {
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                setTimeout(() => {
-                    document.getElementById('step-form').classList.remove('active');
-                    document.getElementById('success-screen').classList.add('active');
-                }, 500);
-
-            } catch (error) {
-                console.error("Ошибка отправки:", error);
-                alert("Ошибка сети при отправке данных!");
-                submitBtn.style.display = 'block';
-                loaderText.style.display = 'none';
+            for (const key in fields) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
             }
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            // Переход на экран успеха через 800мс
+            setTimeout(() => {
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+            }, 800);
         }
     </script>
 </body>
