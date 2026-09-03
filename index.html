@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер серийного номера</title>
+    <title>Сканер оборудования</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
@@ -102,8 +102,16 @@
 <body>
     <div class="container">
 
-        <!-- ШАГ 1: Сканирование -->
+        <!-- ШАГ 1: Выбор типа оборудования и сканирование -->
         <div id="step-scan" class="step active">
+            <h3 style="text-align: center; margin: 0;">Выберите тип оборудования</h3>
+            <div class="card">
+                <label for="equipment-type">Что сканируем:</label>
+                <select id="equipment-type">
+                    <option value="router">Роутер (лист «Роутеры»)</option>
+                    <option value="stb">Приставка (лист «Приставки»)</option>
+                </select>
+            </div>
             <h3 style="text-align: center; margin: 0;">Наведите камеру на штрих-код</h3>
             <div id="reader"></div>
             <button class="btn file-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
@@ -121,7 +129,7 @@
             </div>
 
             <div class="card">
-                <label for="installer">Выберите монтажника:</label>
+                <label for="installer">Кому выдан (Монтажник):</label>
                 <select id="installer">
                     <option value="Курмангалиев Тимур Берикович, Бригада №1 (Темиртау)">Курмангалиев Тимур Берикович, Бригада №1 (Темиртау)</option>
                     <option value="Стрижко Дмитрий Юрьевич, Бригада №3 (Темиртау)">Стрижко Дмитрий Юрьевич, Бригада №3 (Темиртау)</option>
@@ -137,21 +145,21 @@
                 </select>
             </div>
 
-            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать роутер в таблицу 🚀</button>
+            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать в таблицу 🚀</button>
             <div class="loader" id="loader-text">⏳ Запись в Google Таблицу...</div>
         </div>
 
         <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
             <h2 style="color: #2ecc71; margin: 0;">Успешно записано! 🎉</h2>
-            <p style="color: #ccc;">Данные роутера и монтажника добавлены в таблицу.</p>
-            <button class="btn main-btn" onclick="resetScanner()">Сканировать следующий роутер 📲</button>
+            <p style="color: #ccc;">Оборудование закреплено за монтажником.</p>
+            <button class="btn main-btn" onclick="resetScanner()">Сканировать следующее 📲</button>
         </div>
 
     </div>
 
     <script>
-        // Вставьте сюда вашу ссылку на развернутый Google Apps Script Web App:
+        // Вставьте сюда вашу новую ссылку на «Блок 22» из Google Apps Script:
         const GOOGLE_SCRIPT_URL = "ЗДЕСЬ_ВАША_ССЫЛКА_ИЗ_APPS_SCRIPT";
 
         let currentCode = "";
@@ -167,7 +175,7 @@
                 { fps: 15, qrbox: { width: 280, height: 140 } },
                 (text) => {
                     currentCode = text;
-                    if (navigator.vibrate) navigator.vibrate(50); // Вибрация при успешном скане (если поддерживается)
+                    if (navigator.vibrate) navigator.vibrate(50);
                     stopCameraAndShowForm();
                 }
             ).then(() => {
@@ -247,14 +255,16 @@
             startCamera();
         }
 
-        // Прямая отправка данных на ваш скрипт Google Таблицы
         async function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
             }
 
+            const equipmentType = document.getElementById('equipment-type').value;
             const installer = document.getElementById('installer').value;
+            const givenBy = "Толокнов Евгений"; // Фиксированное значение для столбца K
+            
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
 
@@ -262,18 +272,18 @@
             loaderText.style.display = 'block';
 
             try {
-                // Отправляем POST запрос на Google Apps Script
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Важно для общих скриптов Google, чтобы не было ошибки CORS
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        type: equipmentType,
                         serialNumber: currentCode,
-                        installer: installer
+                        installer: installer,
+                        givenBy: givenBy
                     })
                 });
 
-                // Так как mode: 'no-cors' не дает прочитать ответ, считаем успешным по факту выполнения запроса
                 document.getElementById('step-form').classList.remove('active');
                 document.getElementById('success-screen').classList.add('active');
 
