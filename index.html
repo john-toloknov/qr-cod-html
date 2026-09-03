@@ -3,129 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер оборудования</title>
+    <title>Сканер оборудования | Beeline</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
+        :root {
+            --beeline-yellow: #FFCC00;
+            --beeline-yellow-hover: #ffdb4d;
+            --beeline-dark: #121212;
+            --beeline-card: #1e1e1e;
+            --beeline-card-border: #2c2c2c;
+            --text-main: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-blue: #3b82f6;
+            --danger-red: #ef4444;
+        }
+
         body { 
-            font-family: sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0; 
-            padding: 15px; 
-            background: #17212b; 
-            color: white; 
+            padding: 20px; 
+            background: var(--beeline-dark); 
+            color: var(--text-main); 
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 90vh;
+            min-height: 95vh;
+            box-sizing: border-box;
         }
+
         .container {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 16px;
         }
+
+        /* Шапка с брендингом */
+        .brand-header {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .brand-logo {
+            display: inline-block;
+            background: var(--beeline-yellow);
+            color: #000;
+            font-weight: 900;
+            font-size: 20px;
+            padding: 6px 16px;
+            border-radius: 8px;
+            letter-spacing: -0.5px;
+            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.25);
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0 0 4px 0;
+        }
+
         #reader { 
             width: 100%; 
-            border-radius: 12px; 
+            border-radius: 16px; 
             overflow: hidden; 
             background: #000;
+            border: 2px solid var(--beeline-card-border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
+
         .card {
-            background: #212d3b;
-            padding: 15px;
-            border-radius: 10px;
+            background: var(--beeline-card);
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--beeline-card-border);
             display: flex;
             flex-direction: column;
             gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
+
         .code-display {
             font-family: monospace;
             font-size: 18px;
-            color: #52cbff;
-            background: #2b5278;
-            padding: 12px;
-            border-radius: 8px;
+            color: var(--beeline-yellow);
+            background: #111111;
+            padding: 14px;
+            border-radius: 12px;
             word-break: break-all;
             text-align: center;
+            border: 1px solid #333;
         }
+
         label {
-            font-size: 14px;
-            color: #8ab4f8;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         select, input {
             width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #3b4e63;
-            background: #17212b;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--beeline-card-border);
+            background: #141414;
             color: white;
-            font-size: 14px;
+            font-size: 15px;
             box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease;
         }
+
+        select:focus, input:focus {
+            border-color: var(--beeline-yellow);
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
+        }
+
+        /* Кнопки */
         .btn {
             border: none;
-            padding: 14px;
+            padding: 15px;
             font-size: 16px;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             width: 100%;
-            font-weight: bold;
+            font-weight: 700;
+            transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .main-btn { background-color: #27ae60; color: white; }
-        .retry-btn { background-color: #c0392b; color: white; }
-        .file-btn { background-color: #2980b9; color: white; }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Главная кнопка в стиле Beeline (Желтая) */
+        .main-btn { 
+            background-color: var(--beeline-yellow); 
+            color: #000; 
+            box-shadow: 0 4px 14px rgba(255, 204, 0, 0.3);
+        }
+        .main-btn:hover {
+            background-color: var(--beeline-yellow-hover);
+        }
+
+        /* Кнопка сброса/перезапуска (Красная акцентная) */
+        .retry-btn { 
+            background-color: rgba(239, 68, 68, 0.15); 
+            color: var(--danger-red); 
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            font-size: 14px;
+            padding: 10px;
+        }
+        .retry-btn:hover {
+            background-color: rgba(239, 68, 68, 0.25);
+        }
+
+        /* Кнопка файла (Синяя) */
+        .file-btn { 
+            background-color: #222b38; 
+            color: #60a5fa; 
+            border: 1px solid #1e3a8a;
+        }
+        .file-btn:hover {
+            background-color: #1e293b;
+        }
+
         #file-input { display: none; }
         
         .step { display: none; }
-        .step.active { display: flex; flex-direction: column; gap: 15px; }
+        .step.active { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         
         #success-screen {
             text-align: center;
-            padding: 30px 10px;
+            padding: 40px 15px;
             display: none;
         }
         #success-screen.active {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 16px;
             align-items: center;
+            animation: fadeIn 0.3s ease;
         }
+
+        .success-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            border: 2px solid rgba(34, 197, 94, 0.3);
+        }
+
         .loader {
-            font-size: 16px;
-            color: #f1c40f;
+            font-size: 15px;
+            color: var(--beeline-yellow);
             display: none;
             text-align: center;
+            font-weight: 500;
+            padding: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
 
+        <!-- Брендовый логотип вверху -->
+        <div class="brand-header">
+            <div class="brand-logo">Beeline</div>
+        </div>
+
         <!-- ШАГ 1 -->
         <div id="step-scan" class="step active">
-            <h3 style="text-align: center; margin: 0;">Выберите тип оборудования</h3>
             <div class="card">
-                <label for="equipment-type">Что сканируем:</label>
+                <label for="equipment-type">Тип оборудования:</label>
                 <select id="equipment-type">
-                    <option value="router">Роутер</option>
-                    <option value="stb">Приставка</option>
+                    <option value="router">📡 Роутер</option>
+                    <option value="stb">📺 Приставка</option>
                 </select>
             </div>
-            <h3 style="text-align: center; margin: 0;">Наведите камеру на штрих-код</h3>
+            
+            <h3 style="text-align: center; margin-top: 5px;">Наведите камеру на штрих-код</h3>
             <div id="reader"></div>
+            
             <button class="btn file-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
         <!-- ШАГ 2 -->
         <div id="step-form" class="step">
-            <h3 style="text-align: center; margin: 0;">✅ Код успешно считан</h3>
+            <h3 style="text-align: center; color: #22c55e;">✅ Код успешно считан</h3>
             
             <div class="card">
                 <label>Серийный номер:</label>
                 <div class="code-display" id="scanned-code-text"></div>
-                <button class="btn retry-btn" style="padding: 8px; font-size: 14px;" onclick="resetScanner()">Сканировать другой код 🔄</button>
+                <button class="btn retry-btn" onclick="resetScanner()">Сканировать другой код 🔄</button>
             </div>
 
             <div class="card">
@@ -161,9 +288,10 @@
 
         <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
-            <h2 style="color: #2ecc71; margin: 0;">Успешно записано! 🎉</h2>
-            <p style="color: #ccc;">Оборудование закреплено за монтажником.</p>
-            <button class="btn main-btn" onclick="resetScanner()">Сканировать следующее 📲</button>
+            <div class="success-icon">✓</div>
+            <h2 style="color: #ffffff; margin: 0; font-size: 22px;">Успешно записано!</h2>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Оборудование закреплено за монтажником.</p>
+            <button class="btn main-btn" onclick="resetScanner()" style="margin-top: 10px;">Сканировать следующее 📲</button>
         </div>
 
     </div>
@@ -271,7 +399,7 @@
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
             document.getElementById('file-input').value = '';
-            document.getElementById('submit-btn').style.display = 'block';
+            document.getElementById('submit-btn').style.display = 'flex';
             document.getElementById('loader-text').style.display = 'none';
             
             setTimeout(() => { startCamera(); }, 500);
@@ -293,7 +421,6 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Формируем GET-запрос через изображение (100% обход блокировок CORS у Google)
             const url = new URL(GOOGLE_SCRIPT_URL);
             url.searchParams.append('type', equipmentType);
             url.searchParams.append('serialNumber', currentCode);
@@ -303,7 +430,6 @@
             const img = new Image();
             img.src = url.toString();
 
-            // Через 1 секунду переключаем экран на успех (запрос улетел мгновенно)
             setTimeout(() => {
                 document.getElementById('step-form').classList.remove('active');
                 document.getElementById('success-screen').classList.add('active');
