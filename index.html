@@ -158,6 +158,9 @@
 
     </div>
 
+    <!-- Скрытый iframe для отправки данных без CORS-ошибок -->
+    <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
+
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
@@ -270,22 +273,36 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Формируем URL с параметрами (абсолютно надежный метод обхода CORS)
-            const targetUrl = GOOGLE_SCRIPT_URL + 
-                "?type=" + encodeURIComponent(equipmentType) +
-                "&serialNumber=" + encodeURIComponent(currentCode) +
-                "&installer=" + encodeURIComponent(installer) +
-                "&givenBy=" + encodeURIComponent(givenBy);
+            // Создаем динамическую форму для отправки через скрытый iframe (обход CORS на 100%)
+            const form = document.createElement('form');
+            form.action = GOOGLE_SCRIPT_URL;
+            form.method = 'POST';
+            form.target = 'hidden-iframe';
 
-            // Используем fetch в режиме no-cors с GET-запросом (браузер отправляет запрос мгновенно без блокировок)
-            fetch(targetUrl, { mode: 'no-cors' }).then(() => {
+            const fields = {
+                type: equipmentType,
+                serialNumber: currentCode,
+                installer: installer,
+                givenBy: givenBy
+            };
+
+            for (const key in fields) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            // Так как отправка идет в фоне через iframe, сразу показываем экран успеха
+            setTimeout(() => {
                 document.getElementById('step-form').classList.remove('active');
                 document.getElementById('success-screen').classList.add('active');
-            }).catch((error) => {
-                // Даже если сработает таймаут сети, данные все равно улетят в скрипт
-                document.getElementById('step-form').classList.remove('active');
-                document.getElementById('success-screen').classList.add('active');
-            });
+            }, 600);
         }
     </script>
 </body>
