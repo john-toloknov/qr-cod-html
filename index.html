@@ -118,7 +118,7 @@
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
         </div>
 
-        <!-- ШАГ 2: Выбор монтажника и отправка -->
+        <!-- ШАГ 2: Выбор сотрудника, монтажника и отправка -->
         <div id="step-form" class="step">
             <h3 style="text-align: center; margin: 0;">✅ Код успешно считан</h3>
             
@@ -126,6 +126,16 @@
                 <label>Серийный номер:</label>
                 <div class="code-display" id="scanned-code-text"></div>
                 <button class="btn retry-btn" style="padding: 8px; font-size: 14px;" onclick="resetScanner()">Сканировать другой код 🔄</button>
+            </div>
+
+            <div class="card">
+                <label for="given-by">Кто записывает (Кем выдан):</label>
+                <select id="given-by">
+                    <option value="Толокнов Евгений" selected>Толокнов Евгений</option>
+                    <option value="Лоос Виктор">Лоос Виктор</option>
+                    <option value="Стрижко Дмитрий">Стрижко Дмитрий</option>
+                    <option value="Какалова Мария">Какалова Мария</option>
+                </select>
             </div>
 
             <div class="card">
@@ -158,9 +168,6 @@
 
     </div>
 
-    <!-- Скрытый iframe для отправки данных -->
-    <iframe name="hidden-iframe" id="hidden-iframe" style="display:none;"></iframe>
-
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
@@ -170,7 +177,6 @@
         let isCameraRunning = false;
 
         async function startCamera() {
-            // Очищаем контейнер, чтобы гарантированно сбросить зависшие потоки камеры
             document.getElementById('reader').innerHTML = '';
             html5QrCode = new Html5Qrcode("reader");
 
@@ -267,7 +273,7 @@
             }, 300);
         }
 
-        function sendDataToGoogleSheet() {
+        async function sendDataToGoogleSheet() {
             if (!currentCode) {
                 alert("Ошибка: серийный номер не найден!");
                 return;
@@ -275,7 +281,7 @@
 
             const equipmentType = document.getElementById('equipment-type').value;
             const installer = document.getElementById('installer').value;
-            const givenBy = "Толокнов Евгений";
+            const givenBy = document.getElementById('given-by').value;
             
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
@@ -283,35 +289,34 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Отправка через скрытую форму в iframe
-            const form = document.createElement('form');
-            form.action = GOOGLE_SCRIPT_URL;
-            form.method = 'POST';
-            form.target = 'hidden-iframe';
-
-            const fields = {
+            const payload = {
                 type: equipmentType,
                 serialNumber: currentCode,
                 installer: installer,
                 givenBy: givenBy
             };
 
-            for (const key in fields) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = fields[key];
-                form.appendChild(input);
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 500);
+
+            } catch (error) {
+                console.error("Ошибка отправки:", error);
+                alert("Ошибка сети при отправке данных!");
+                submitBtn.style.display = 'block';
+                loaderText.style.display = 'none';
             }
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-
-            setTimeout(() => {
-                document.getElementById('step-form').classList.remove('active');
-                document.getElementById('success-screen').classList.add('active');
-            }, 600);
         }
     </script>
 </body>
