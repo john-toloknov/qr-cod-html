@@ -159,7 +159,7 @@
     </div>
 
     <script>
-        // Вставьте сюда вашу новую ссылку на «Блок 22» из Google Apps Script:
+        // Вставьте сюда вашу актуальную ссылку на веб-приложение Google Apps Script («Блок 22»):
         const GOOGLE_SCRIPT_URL = "ЗДЕСЬ_ВАША_ССЫЛКА_ИЗ_APPS_SCRIPT";
 
         let currentCode = "";
@@ -255,44 +255,44 @@
             startCamera();
         }
 
-        async function sendDataToGoogleSheet() {
-            if (!currentCode) {
-                alert("Ошибка: серийный номер не найден!");
-                return;
-            }
+async function sendDataToGoogleSheet() {
+    if (!currentCode) {
+        alert("Ошибка: серийный номер не найден!");
+        return;
+    }
 
-            const equipmentType = document.getElementById('equipment-type').value;
-            const installer = document.getElementById('installer').value;
-            const givenBy = "Толокнов Евгений"; // Фиксированное значение для столбца K
-            
-            const submitBtn = document.getElementById('submit-btn');
-            const loaderText = document.getElementById('loader-text');
+    const equipmentType = document.getElementById('equipment-type').value;
+    const installer = document.getElementById('installer').value;
+    const givenBy = "Толокнов Евгений";
+    
+    const submitBtn = document.getElementById('submit-btn');
+    const loaderText = document.getElementById('loader-text');
 
-            submitBtn.style.display = 'none';
-            loaderText.style.display = 'block';
+    submitBtn.style.display = 'none';
+    loaderText.style.display = 'block';
 
-            try {
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: equipmentType,
-                        serialNumber: currentCode,
-                        installer: installer,
-                        givenBy: givenBy
-                    })
-                });
+    try {
+        // Убраны заголовки, вызывавшие блокировку CORS
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                type: equipmentType,
+                serialNumber: currentCode,
+                installer: installer,
+                givenBy: givenBy
+            })
+        });
 
-                document.getElementById('step-form').classList.remove('active');
-                document.getElementById('success-screen').classList.add('active');
+        document.getElementById('step-form').classList.remove('active');
+        document.getElementById('success-screen').classList.add('active');
 
-            } catch (error) {
-                alert("Ошибка при отправке: " + error);
-                submitBtn.style.display = 'block';
-                loaderText.style.display = 'none';
-            }
-        }
+    } catch (error) {
+        alert("Ошибка при отправке: " + error);
+        submitBtn.style.display = 'block';
+        loaderText.style.display = 'none';
+    }
+}
     </script>
 </body>
 </html>
