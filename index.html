@@ -411,7 +411,7 @@
             <div class="card manual-input-box" id="manual-box">
                 <label>Введите серийный номер вручную</label>
                 <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер">
-                <button class="btn main-btn" onclick="submitManualCode()">Готово ✔</button>
+                <button class="btn main-btn" onclick="submitManualCode()">Готово ✅</button>
             </div>
             
             <button class="btn action-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
@@ -432,13 +432,13 @@
         <!-- ШАГ 2: ФОРМА И ОТПРАВКА -->
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
-                <span>✓</span> Серийный номер принят
+                <span>Серийный номер принят</span> ✅
             </div>
             
             <div class="card">
                 <label id="step2-code-label">Серийный номер</label>
                 <div class="code-display" id="scanned-code-text"></div>
-                <button class="btn retry-btn" onclick="resetScanner()">Повторное сканирование 🔄</button>
+                <button class="btn retry-btn" onclick="resetScanner()">Повторное сканирование ♻️</button>
             </div>
 
             <!-- Поле для метража (только для кабеля) -->
@@ -448,7 +448,7 @@
             </div>
 
             <div class="card">
-                <label>Кем выдан</label>
+                <label>Кем выдан 👤</label>
                 <div class="custom-dropdown">
                     <button type="button" class="dropdown-select-btn" id="author-btn" onclick="toggleDropdown('author-list')">
                         <span id="author-selected">Толокнов Евгений</span>
@@ -465,7 +465,7 @@
             </div>
 
             <div class="card">
-                <label>Кому выдан</label>
+                <label>Кому выдан 👤</label>
                 <div class="custom-dropdown">
                     <button type="button" class="dropdown-select-btn" id="installer-btn" onclick="toggleDropdown('installer-list')">
                         <span id="installer-selected">Курмангалиев Тимур</span>
@@ -489,7 +489,7 @@
             </div>
 
             <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать в таблицу 🚀</button>
-            <div class="loader" id="loader-text">⏳ Запись в Google Таблицу...</div>
+            <div class="loader" id="loader-text">Запись в Google Таблицу...⏳</div>
         </div>
 
         <!-- ЭКРАН УСПЕХА -->
