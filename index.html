@@ -81,7 +81,7 @@
             border: 2px solid var(--card-border);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
         }
-        
+
         #reader video {
             object-fit: cover !important;
             width: 100% !important;
@@ -327,7 +327,7 @@
         }
 
         #file-input { display: none; }
-        
+
         .step { display: none; }
         .step.active { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.25s ease; }
 
@@ -335,7 +335,7 @@
             from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         #success-screen {
             text-align: center;
             padding: 40px 10px;
@@ -401,7 +401,7 @@
             </div>
 
             <input type="hidden" id="equipment-type" value="router">
-            
+
             <div id="camera-section" style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);">Наведите камеру на штрих-код</div>
                 <div id="reader"></div>
@@ -413,7 +413,7 @@
                 <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер">
                 <button class="btn main-btn" onclick="submitManualCode()">Готово ✅</button>
             </div>
-            
+
             <button class="btn action-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
             <button class="btn action-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
@@ -434,7 +434,7 @@
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
                 <span>Серийный номер принят</span> ✅
             </div>
-            
+
             <div class="card">
                 <label id="step2-code-label">Серийный номер</label>
                 <div class="code-display" id="scanned-code-text"></div>
@@ -514,7 +514,7 @@
         function setEquipmentMode(type, title) {
             currentMode = "equipment";
             document.getElementById('equipment-type').value = type;
-            
+
             document.getElementById('mode-router-btn').classList.remove('active');
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.remove('active');
@@ -530,7 +530,7 @@
 
         function setCableMode() {
             currentMode = "cable";
-            
+
             document.getElementById('mode-router-btn').classList.remove('active');
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.add('active');
@@ -653,7 +653,7 @@
                         canvas.height = img.height * (1600 / img.width);
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        
+
                         try {
                             const result = await zxingReader.decodeFromImageUrl(canvas.toDataURL('image/jpeg', 0.95));
                             if (result) {
@@ -694,7 +694,7 @@
             currentCode = "";
             document.getElementById('manual-serial-input').value = '';
             document.getElementById('cable-meters-input').value = '';
-            
+
             if (html5QrCode && isCameraRunning) {
                 try {
                     await html5QrCode.stop();
@@ -702,7 +702,7 @@
                 } catch (e) {}
                 isCameraRunning = false;
             }
-            
+
             document.getElementById('manual-box').classList.remove('active');
             document.getElementById('camera-section').style.display = 'flex';
             document.getElementById('toggle-manual-btn').textContent = 'Ввести вручную ⌨️';
@@ -713,27 +713,63 @@
             document.getElementById('file-input').value = '';
             document.getElementById('submit-btn').style.display = 'flex';
             document.getElementById('loader-text').style.display = 'none';
-            
+
             setTimeout(() => { startCamera(); }, 500);
         }
 
+        function sendDataToGoogleSheet() {
+            if (!currentCode) {
+                alert("Ошибка: серийный номер не найден!");
+                return;
+            }
 function sendDataToGoogleSheet() {
         if (!currentCode) {
             alert("Ошибка: серийный номер не найден!");
             return;
         }
 
+            const author = document.getElementById('author').value;
+            const installer = document.getElementById('installer').value;
         const author = document.getElementById('author').value;
         const installer = document.getElementById('installer').value;
 
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            
+            // ВАЖНО: Устанавливаем режим именно "scanner", чтобы диспетчер на сервере понял, куда слать данные
+            url.searchParams.append('mode', 'scanner'); 
+            url.searchParams.append('serialNumber', currentCode);
+            url.searchParams.append('author', author);
+            url.searchParams.append('installer', installer);
+
+            if (currentMode === 'equipment') {
+                const equipmentType = document.getElementById('equipment-type').value;
+                url.searchParams.append('type', equipmentType);
+            } else {
+                const cableName = document.getElementById('cable-name').value;
+                const meters = document.getElementById('cable-meters-input').value.trim();
+                
+                if (!meters) {
+                    alert("Пожалуйста, укажите метраж кабеля!");
+                    return;
+                }
+                url.searchParams.append('cableName', cableName);
+                url.searchParams.append('meters', meters);
+            }
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const loaderText = document.getElementById('loader-text');
         const url = new URL(GOOGLE_SCRIPT_URL);
 
+            submitBtn.style.display = 'none';
+            loaderText.style.display = 'block';
         // ВАЖНО: Устанавливаем режим именно "scanner", чтобы диспетчер на сервере понял, куда слать данные
         url.searchParams.append('mode', 'scanner');
         url.searchParams.append('serialNumber', currentCode);
         url.searchParams.append('author', author);
         url.searchParams.append('installer', installer);
 
+            const img = new Image();
+            img.src = url.toString();
         if (currentMode === 'equipment') {
             const equipmentType = document.getElementById('equipment-type').value;
             url.searchParams.append('type', equipmentType);
@@ -741,6 +777,10 @@ function sendDataToGoogleSheet() {
             const cableName = document.getElementById('cable-name').value;
             const meters = document.getElementById('cable-meters-input').value.trim();
 
+            setTimeout(() => {
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+            }, 1000);
             if (!meters) {
                 alert("Пожалуйста, укажите метраж кабеля!");
                 return;
