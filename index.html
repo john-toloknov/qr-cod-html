@@ -727,7 +727,9 @@
             const installer = document.getElementById('installer').value;
 
             const url = new URL(GOOGLE_SCRIPT_URL);
-            url.searchParams.append('mode', currentMode); 
+            
+            // ВАЖНО: Устанавливаем режим именно "scanner", чтобы диспетчер на сервере понял, куда слать данные
+            url.searchParams.append('mode', 'scanner'); 
             url.searchParams.append('serialNumber', currentCode);
             url.searchParams.append('author', author);
             url.searchParams.append('installer', installer);
