@@ -93,7 +93,7 @@
             background: rgba(34, 197, 94, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.3);
             border-radius: 12px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -101,7 +101,7 @@
             position: relative;
         }
 
-        .last-scanned-header {
+        .last-scanned-top-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -115,20 +115,31 @@
             letter-spacing: 0.5px;
         }
 
-        /* Кнопка с иконкой 🔄 внутри плашки */
+        /* Компактная квадратная кнопка 🔄 в правом верхнем углу */
         .rescan-icon-btn {
-            background: none;
-            border: none;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            color: var(--text-main);
             cursor: pointer;
-            font-size: 16px;
-            padding: 2px 6px;
-            border-radius: 6px;
-            transition: background 0.2s;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            padding: 0;
             line-height: 1;
         }
 
         .rescan-icon-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(34, 197, 94, 0.3);
+            border-color: var(--success);
+        }
+
+        .rescan-icon-btn:active {
+            transform: scale(0.92);
         }
 
         .last-scanned-value {
@@ -474,9 +485,9 @@
                 <input type="hidden" id="cable-name" value="Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)">
             </div>
 
-            <!-- Экран последнего успешно отсканированного элемента с иконкой 🔄 -->
+            <!-- Экран последнего успешно отсканированного элемента с квадратной кнопкой 🔄 -->
             <div class="last-scanned-card" id="last-scanned-box" style="display: none;">
-                <div class="last-scanned-header">
+                <div class="last-scanned-top-row">
                     <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
                     <button type="button" class="rescan-icon-btn" onclick="rescanLastItem()" title="Пересканировать">🔄</button>
                 </div>
@@ -739,11 +750,10 @@
         // Функция по кнопке 🔄: удаляет последний элемент из пачки и сбрасывает блокировку сканера
         function rescanLastItem() {
             if (scannedBatch.length > 0) {
-                scannedBatch.pop(); // удаляем последний добавленный элемент
+                scannedBatch.pop(); 
             }
-            lastScannedCode = ""; // сбрасываем защиту от повторного сканирования для этого штрих-кода
+            lastScannedCode = ""; 
             
-            // Скрываем плашку последнего сканирования
             document.getElementById('last-scanned-box').style.display = 'none';
             updateBatchUI();
 
