@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер оборудования | Beeline</title>
+    <!-- Подключаем Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
@@ -97,6 +98,13 @@
             flex-direction: column;
             gap: 4px;
             box-sizing: border-box;
+            position: relative;
+        }
+
+        .last-scanned-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .last-scanned-title {
@@ -105,6 +113,22 @@
             font-weight: 700;
             color: var(--success);
             letter-spacing: 0.5px;
+        }
+
+        /* Кнопка с иконкой 🔄 внутри плашки */
+        .rescan-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            line-height: 1;
+        }
+
+        .rescan-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .last-scanned-value {
@@ -423,13 +447,16 @@
 <body>
     <div class="container">
 
+        <!-- ШАГ 1: СКАНИРОВАНИЕ / ВВОД -->
         <div id="step-scan" class="step active">
+            <!-- Тройной переключатель режима (Роутер / Приставка / Кабель) -->
             <div class="mode-selector">
                 <button type="button" class="mode-btn active" id="mode-router-btn" onclick="setEquipmentMode('router')">🛜 Роутер</button>
                 <button type="button" class="mode-btn" id="mode-stb-btn" onclick="setEquipmentMode('stb')">📺 Приставка</button>
                 <button type="button" class="mode-btn" id="mode-cable-btn" onclick="setCableMode()">🔌 Кабель</button>
             </div>
 
+            <!-- Карточка выбора наименования кабеля (видна только в режиме кабеля) -->
             <div class="card" id="cable-name-card" style="display: none;">
                 <label>Марка кабеля (авто-метраж)</label>
                 <div class="custom-dropdown">
@@ -447,8 +474,12 @@
                 <input type="hidden" id="cable-name" value="Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)">
             </div>
 
+            <!-- Экран последнего успешно отсканированного элемента с иконкой 🔄 -->
             <div class="last-scanned-card" id="last-scanned-box" style="display: none;">
-                <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
+                <div class="last-scanned-header">
+                    <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
+                    <button type="button" class="rescan-icon-btn" onclick="rescanLastItem()" title="Пересканировать">🔄</button>
+                </div>
                 <span class="last-scanned-value" id="last-scanned-text">—</span>
             </div>
 
@@ -457,6 +488,7 @@
                 <div id="reader"></div>
             </div>
 
+            <!-- Блок ручного ввода -->
             <div class="card manual-input-box" id="manual-box">
                 <label id="manual-label">Введите серийный номер вручную</label>
                 <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер / Бухта">
@@ -467,8 +499,10 @@
             <button class="btn action-btn" id="gallery-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
 
+            <!-- Кнопка перехода к оформлению, если уже что-то сканировали -->
             <button class="btn main-btn" id="proceed-to-form-btn" style="display: none;" onclick="showFormStep()">Перейти к оформлению (<span id="batch-count-badge">0</span> шт.) 🚀</button>
 
+            <!-- Блок автора и кнопки в одну строку по центру -->
             <div class="author-footer">
                 <span class="author-text">Автор: Толокнов Евгений Алексеевич</span>
                 <button class="pulse-tg-btn" onclick="openAuthorChat()" title="Написать автору в Telegram">
@@ -479,6 +513,7 @@
             </div>
         </div>
 
+        <!-- ШАГ 2: ФОРМА И ОТПРАВКА -->
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
                 <span>Общая пачка оборудования</span> ✅
@@ -487,7 +522,8 @@
             <div class="card">
                 <label>Содержимое пачки (<span id="total-items-count">0</span>)</label>
                 <div class="code-display-list" id="scanned-codes-list-container">
-                    </div>
+                    <!-- Сюда динамически добавятся элементы пачки -->
+                </div>
                 <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
             </div>
 
@@ -536,6 +572,7 @@
             <div class="loader" id="loader-text">Распределение по листам таблицы...⏳</div>
         </div>
 
+        <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
             <div class="success-icon">✓</div>
             <h2 style="color: var(--text-main); margin: 0; font-size: 20px;">Успешно записано!</h2>
@@ -549,17 +586,17 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentMode = "router"; // 'router', 'stb', 'cable'
-        let currentCableMeters = 500; // Автоматический метраж по умолчанию
-        let scannedBatch = []; // Единый массив объектов для всей пачки
+        let currentCableMeters = 500; 
+        let scannedBatch = []; 
         let html5QrCode = null;
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
         let lastScannedItemText = ""; 
 
-        // Переменные для анти-дребезга (защита от повторного считывания того же штрих-кода)
+        // Переменные для анти-дребезга и пересканирования
         let lastScannedCode = "";
         let lastScanTime = 0;
-        const SCAN_COOLDOWN = 1500; // 1.5 секунды блокировки на тот же штрих-код
+        const SCAN_COOLDOWN = 1500; 
 
         function setEquipmentMode(type) {
             currentMode = type;
@@ -568,7 +605,6 @@
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.remove('active');
 
-            // Сбрасываем память последнего кода при переключении режима
             lastScannedCode = "";
 
             if (type === 'router') {
@@ -665,9 +701,6 @@
             if (!trimmed) return;
 
             const now = Date.now();
-            
-            // ЗАЩИТА ОТ ДУБЛИКАТОВ: 
-            // Если этот же код пытаются просканировать повторно быстрее чем за 1.5 секунды — игнорируем
             if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
                 return;
             }
@@ -676,7 +709,7 @@
             lastScanTime = now;
 
             let itemData = {
-                mode: currentMode, // 'router', 'stb', 'cable'
+                mode: currentMode, 
                 serial: trimmed,
                 cableName: null,
                 meters: null
@@ -695,13 +728,26 @@
             scannedBatch.push(itemData);
             updateBatchUI();
 
-            // Показываем карточку последнего сканирования на экране
             const lastBox = document.getElementById('last-scanned-box');
             const lastText = document.getElementById('last-scanned-text');
             lastText.textContent = lastScannedItemText;
             lastBox.style.display = 'flex';
 
             if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        // Функция по кнопке 🔄: удаляет последний элемент из пачки и сбрасывает блокировку сканера
+        function rescanLastItem() {
+            if (scannedBatch.length > 0) {
+                scannedBatch.pop(); // удаляем последний добавленный элемент
+            }
+            lastScannedCode = ""; // сбрасываем защиту от повторного сканирования для этого штрих-кода
+            
+            // Скрываем плашку последнего сканирования
+            document.getElementById('last-scanned-box').style.display = 'none';
+            updateBatchUI();
+
+            if (navigator.vibrate) navigator.vibrate(30);
         }
 
         function updateBatchUI() {
@@ -804,7 +850,6 @@
             document.getElementById('step-scan').classList.remove('active');
             document.getElementById('success-screen').classList.remove('active');
             
-            // Формируем красивый список смешанной пачки
             const listContainer = document.getElementById('scanned-codes-list-container');
             listContainer.innerHTML = '';
             
@@ -851,7 +896,7 @@
         function backToScanner() {
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
-            lastScannedCode = ""; // сбрасываем память при возврате
+            lastScannedCode = ""; 
             updateBatchUI();
             setTimeout(() => { startCamera(); }, 300);
         }
