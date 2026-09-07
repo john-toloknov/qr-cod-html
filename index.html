@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер оборудования | Beeline</title>
-    <!-- Подключаем Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
@@ -458,16 +457,13 @@
 <body>
     <div class="container">
 
-        <!-- ШАГ 1: СКАНИРОВАНИЕ / ВВОД -->
         <div id="step-scan" class="step active">
-            <!-- Тройной переключатель режима (Роутер / Приставка / Кабель) -->
             <div class="mode-selector">
                 <button type="button" class="mode-btn active" id="mode-router-btn" onclick="setEquipmentMode('router')">🛜 Роутер</button>
                 <button type="button" class="mode-btn" id="mode-stb-btn" onclick="setEquipmentMode('stb')">📺 Приставка</button>
                 <button type="button" class="mode-btn" id="mode-cable-btn" onclick="setCableMode()">🔌 Кабель</button>
             </div>
 
-            <!-- Карточка выбора наименования кабеля (видна только в режиме кабеля) -->
             <div class="card" id="cable-name-card" style="display: none;">
                 <label>Марка кабеля (авто-метраж)</label>
                 <div class="custom-dropdown">
@@ -485,7 +481,6 @@
                 <input type="hidden" id="cable-name" value="Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)">
             </div>
 
-            <!-- Экран последнего успешно отсканированного элемента с квадратной кнопкой 🔄 -->
             <div class="last-scanned-card" id="last-scanned-box" style="display: none;">
                 <div class="last-scanned-top-row">
                     <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
@@ -499,7 +494,6 @@
                 <div id="reader"></div>
             </div>
 
-            <!-- Блок ручного ввода -->
             <div class="card manual-input-box" id="manual-box">
                 <label id="manual-label">Введите серийный номер вручную</label>
                 <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер / Бухта">
@@ -510,10 +504,8 @@
             <button class="btn action-btn" id="gallery-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
 
-            <!-- Кнопка перехода к оформлению, если уже что-то сканировали -->
             <button class="btn main-btn" id="proceed-to-form-btn" style="display: none;" onclick="showFormStep()">Перейти к оформлению (<span id="batch-count-badge">0</span> шт.) 🚀</button>
 
-            <!-- Блок автора и кнопки в одну строку по центру -->
             <div class="author-footer">
                 <span class="author-text">Автор: Толокнов Евгений Алексеевич</span>
                 <button class="pulse-tg-btn" onclick="openAuthorChat()" title="Написать автору в Telegram">
@@ -524,7 +516,6 @@
             </div>
         </div>
 
-        <!-- ШАГ 2: ФОРМА И ОТПРАВКА -->
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
                 <span>Общая пачка оборудования</span> ✅
@@ -533,8 +524,7 @@
             <div class="card">
                 <label>Содержимое пачки (<span id="total-items-count">0</span>)</label>
                 <div class="code-display-list" id="scanned-codes-list-container">
-                    <!-- Сюда динамически добавятся элементы пачки -->
-                </div>
+                    </div>
                 <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
             </div>
 
@@ -583,7 +573,6 @@
             <div class="loader" id="loader-text">Распределение по листам таблицы...⏳</div>
         </div>
 
-        <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
             <div class="success-icon">✓</div>
             <h2 style="color: var(--text-main); margin: 0; font-size: 20px;">Успешно записано!</h2>
@@ -604,10 +593,10 @@
         let isCameraRunning = false;
         let lastScannedItemText = ""; 
 
-        // Переменные для анти-дребезга и пересканирования (время увеличено до 2000 мс)
+        // Увеличенная защита от дублирования одного и того же штрих-кода (3 секунды)
         let lastScannedCode = "";
         let lastScanTime = 0;
-        const SCAN_COOLDOWN = 2000; 
+        const SCAN_COOLDOWN = 3000; 
 
         function setEquipmentMode(type) {
             currentMode = type;
@@ -616,6 +605,7 @@
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.remove('active');
 
+            // Сбрасываем последний код при смене режима
             lastScannedCode = "";
 
             if (type === 'router') {
@@ -712,7 +702,7 @@
             if (!trimmed) return;
 
             const now = Date.now();
-            // Глобальная проверка: если тот же код сканируется раньше чем через 2 секунды, игнорируем во всех режимах
+            // ЗАЩИТА: Если это ровно тот же штрих-код и прошло меньше SCAN_COOLDOWN (3 сек), игнорируем
             if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
                 return;
             }
@@ -745,11 +735,10 @@
             lastText.textContent = lastScannedItemText;
             lastBox.style.display = 'flex';
 
-            // Вибрация теперь срабатывает для всех трех режимов (включая роутер)
             if (navigator.vibrate) navigator.vibrate(50);
         }
 
-        // Функция по кнопке 🔄: удаляет последний элемент из пачки и сбрасывает блокировку сканера
+        // Кнопка 🔄: удаляет последний элемент из пачки и разрешает сканировать этот же код снова
         function rescanLastItem() {
             if (scannedBatch.length > 0) {
                 scannedBatch.pop(); 
