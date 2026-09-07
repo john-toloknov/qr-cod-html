@@ -114,7 +114,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Компактная квадратная кнопка 🔄 в правом верхнем углу */
         .rescan-icon-btn {
             background: rgba(34, 197, 94, 0.15);
             border: 1px solid rgba(34, 197, 94, 0.4);
@@ -203,6 +202,33 @@
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        /* Стили для порозного счетчика */
+        .breakdown-counter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+
+        .counter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #111111;
+            border: 1px solid var(--card-border);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-main);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .counter-badge span {
+            color: var(--beeline-yellow);
+            font-weight: 700;
         }
 
         /* Поле ввода для ручного режима */
@@ -522,9 +548,14 @@
             </div>
             
             <div class="card">
-                <label>Содержимое списка (<span id="total-items-count">0</span>)</label>
-                <div class="code-display-list" id="scanned-codes-list-container">
-                    </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label>Содержимое списка</label>
+                </div>
+                
+                <!-- Порозный счетчик (бэйджи) -->
+                <div class="breakdown-counter-container" id="breakdown-counter"></div>
+
+                <div class="code-display-list" id="scanned-codes-list-container"></div>
                 <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
             </div>
 
@@ -701,14 +732,12 @@
 
             const now = Date.now();
 
-            // 1. Проверка: есть ли такой серийный номер УЖЕ в общем списке ТМЦ
             const existsInBatch = scannedBatch.some(item => item.serial === trimmed);
             if (existsInBatch) {
                 alert("⚠️ Этот штрих-код (серийный номер) уже добавлен в список!");
                 return;
             }
 
-            // 2. Защита от моментального повторного срабатывания камеры подряд (анти-дребезг)
             if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
                 return;
             }
@@ -741,7 +770,6 @@
             lastText.textContent = lastScannedItemText;
             lastBox.style.display = 'flex';
 
-            // Универсальная вибрация для всех типов (роутер, приставка, кабель)
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 try {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -864,6 +892,31 @@
             document.getElementById('step-scan').classList.remove('active');
             document.getElementById('success-screen').classList.remove('active');
             
+            // Подсчет количества по категориям
+            let routerCount = 0;
+            let stbCount = 0;
+            let cableCount = 0;
+
+            scannedBatch.forEach(item => {
+                if (item.mode === 'router') routerCount++;
+                else if (item.mode === 'stb') stbCount++;
+                else if (item.mode === 'cable') cableCount++;
+            });
+
+            // Рендер порозного счетчика (скрываем те, где 0)
+            const counterContainer = document.getElementById('breakdown-counter');
+            counterContainer.innerHTML = '';
+
+            if (routerCount > 0) {
+                counterContainer.innerHTML += `<div class="counter-badge">🛜 Роутер: <span>${routerCount}</span></div>`;
+            }
+            if (stbCount > 0) {
+                counterContainer.innerHTML += `<div class="counter-badge">📺 Приставка: <span>${stbCount}</span></div>`;
+            }
+            if (cableCount > 0) {
+                counterContainer.innerHTML += `<div class="counter-badge">🔌 Кабель: <span>${cableCount}</span></div>`;
+            }
+
             const listContainer = document.getElementById('scanned-codes-list-container');
             listContainer.innerHTML = '';
             
@@ -893,7 +946,6 @@
                 `;
             });
 
-            document.getElementById('total-items-count').textContent = scannedBatch.length;
             document.getElementById('step-form').classList.add('active');
         }
 
