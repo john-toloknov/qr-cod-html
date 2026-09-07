@@ -593,7 +593,6 @@
         let isCameraRunning = false;
         let lastScannedItemText = ""; 
 
-        // Увеличенная защита от дублирования одного и того же штрих-кода (3 секунды)
         let lastScannedCode = "";
         let lastScanTime = 0;
         const SCAN_COOLDOWN = 3000; 
@@ -605,7 +604,6 @@
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.remove('active');
 
-            // Сбрасываем последний код при смене режима
             lastScannedCode = "";
 
             if (type === 'router') {
@@ -702,7 +700,15 @@
             if (!trimmed) return;
 
             const now = Date.now();
-            // ЗАЩИТА: Если это ровно тот же штрих-код и прошло меньше SCAN_COOLDOWN (3 сек), игнорируем
+
+            // 1. Проверка: есть ли такой серийный номер УЖЕ в общем списке ТМЦ
+            const existsInBatch = scannedBatch.some(item => item.serial === trimmed);
+            if (existsInBatch) {
+                alert("⚠️ Этот штрих-код (серийный номер) уже добавлен в список!");
+                return;
+            }
+
+            // 2. Защита от моментального повторного срабатывания камеры подряд (анти-дребезг)
             if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
                 return;
             }
@@ -735,10 +741,17 @@
             lastText.textContent = lastScannedItemText;
             lastBox.style.display = 'flex';
 
-            if (navigator.vibrate) navigator.vibrate(50);
+            // Универсальная вибрация для всех типов (роутер, приставка, кабель)
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                try {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                } catch (e) {}
+            }
+            if (navigator.vibrate) {
+                try { navigator.vibrate(60); } catch (e) {}
+            }
         }
 
-        // Кнопка 🔄: удаляет последний элемент из пачки и разрешает сканировать этот же код снова
         function rescanLastItem() {
             if (scannedBatch.length > 0) {
                 scannedBatch.pop(); 
@@ -753,7 +766,7 @@
 
         function updateBatchUI() {
             const count = scannedBatch.length;
-            document.getElementById('scan-hint').textContent = `Наведите камеру на штрих-код (В пачке: ${count} шт.)`;
+            document.getElementById('scan-hint').textContent = `Наведите камеру на штрих-код (В списке: ${count} шт.)`;
             const proceedBtn = document.getElementById('proceed-to-form-btn');
             const badge = document.getElementById('batch-count-badge');
             
@@ -926,7 +939,7 @@
 
         function sendDataToGoogleSheet() {
             if (scannedBatch.length === 0) {
-                alert("Ошибка: пачка пуста!");
+                alert("Ошибка: список пуст!");
                 return;
             }
 
