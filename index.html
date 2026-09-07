@@ -604,10 +604,10 @@
         let isCameraRunning = false;
         let lastScannedItemText = ""; 
 
-        // Переменные для анти-дребезга и пересканирования
+        // Переменные для анти-дребезга и пересканирования (время увеличено до 2000 мс)
         let lastScannedCode = "";
         let lastScanTime = 0;
-        const SCAN_COOLDOWN = 1500; 
+        const SCAN_COOLDOWN = 2000; 
 
         function setEquipmentMode(type) {
             currentMode = type;
@@ -712,6 +712,7 @@
             if (!trimmed) return;
 
             const now = Date.now();
+            // Глобальная проверка: если тот же код сканируется раньше чем через 2 секунды, игнорируем во всех режимах
             if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
                 return;
             }
@@ -744,6 +745,7 @@
             lastText.textContent = lastScannedItemText;
             lastBox.style.display = 'flex';
 
+            // Вибрация теперь срабатывает для всех трех режимов (включая роутер)
             if (navigator.vibrate) navigator.vibrate(50);
         }
 
