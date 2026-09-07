@@ -659,7 +659,7 @@
                 document.getElementById('camera-section').style.display = 'flex';
                 document.getElementById('toggle-manual-btn').style.display = 'flex';
                 document.getElementById('gallery-btn').style.display = 'flex';
-                document.getElementById('manual-label').textContent = 'Номер бухты / примечание кабеля';
+                document.getElementById('manual-label').textContent = 'Серийный номер кабеля';
                 startCamera();
             }
         }
@@ -755,7 +755,8 @@
             if (currentMode === 'cable') {
                 itemData.cableName = document.getElementById('cable-name').value;
                 itemData.meters = currentCableMeters;
-                lastScannedItemText = `Кабель: ${itemData.cableName} (${itemData.meters}м) | Бухта: ${trimmed}`;
+                // Чистый формат: Кабель: Марка кабеля Серийный номер
+                lastScannedItemText = `Кабель: ${itemData.cableName} ${trimmed}`;
             } else if (currentMode === 'stb') {
                 lastScannedItemText = `Приставка | S/N: ${trimmed}`;
             } else {
@@ -892,7 +893,6 @@
             document.getElementById('step-scan').classList.remove('active');
             document.getElementById('success-screen').classList.remove('active');
             
-            // Подсчет количества по категориям
             let routerCount = 0;
             let stbCount = 0;
             let cableCount = 0;
@@ -903,7 +903,6 @@
                 else if (item.mode === 'cable') cableCount++;
             });
 
-            // Рендер порозного счетчика (скрываем те, где 0)
             const counterContainer = document.getElementById('breakdown-counter');
             counterContainer.innerHTML = '';
 
@@ -932,7 +931,7 @@
                     descText = item.serial;
                 } else if (item.mode === 'cable') {
                     typeBadge = '🔌 Кабель';
-                    descText = `${item.cableName} — ${item.meters}м (Бухта: ${item.serial})`;
+                    descText = `${item.cableName} ${item.serial}`;
                 }
 
                 listContainer.innerHTML += `
