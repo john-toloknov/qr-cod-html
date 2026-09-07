@@ -496,8 +496,8 @@
 
             <div class="card manual-input-box" id="manual-box">
                 <label id="manual-label">Введите серийный номер вручную</label>
-                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер / Бухта">
-                <button class="btn main-btn" onclick="submitManualCode()">Добавить в общую пачку ➕</button>
+                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер">
+                <button class="btn main-btn" onclick="submitManualCode()">Добавить в общий список ➕</button>
             </div>
             
             <button class="btn action-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
@@ -569,7 +569,7 @@
                 <input type="hidden" id="installer" value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">
             </div>
 
-            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать общую пачку в таблицу 🚀</button>
+            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать весь список в таблицу 🚀</button>
             <div class="loader" id="loader-text">Распределение по листам таблицы...⏳</div>
         </div>
 
