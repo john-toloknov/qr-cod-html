@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер оборудования | Beeline</title>
-    <!-- Подключаем Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
@@ -424,16 +423,13 @@
 <body>
     <div class="container">
 
-        <!-- ШАГ 1: СКАНИРОВАНИЕ / ВВОД -->
         <div id="step-scan" class="step active">
-            <!-- Тройной переключатель режима (Роутер / Приставка / Кабель) -->
             <div class="mode-selector">
                 <button type="button" class="mode-btn active" id="mode-router-btn" onclick="setEquipmentMode('router')">🛜 Роутер</button>
                 <button type="button" class="mode-btn" id="mode-stb-btn" onclick="setEquipmentMode('stb')">📺 Приставка</button>
                 <button type="button" class="mode-btn" id="mode-cable-btn" onclick="setCableMode()">🔌 Кабель</button>
             </div>
 
-            <!-- Карточка выбора наименования кабеля (видна только в режиме кабеля) -->
             <div class="card" id="cable-name-card" style="display: none;">
                 <label>Марка кабеля (авто-метраж)</label>
                 <div class="custom-dropdown">
@@ -451,7 +447,6 @@
                 <input type="hidden" id="cable-name" value="Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)">
             </div>
 
-            <!-- Экран последнего успешно отсканированного элемента -->
             <div class="last-scanned-card" id="last-scanned-box" style="display: none;">
                 <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
                 <span class="last-scanned-value" id="last-scanned-text">—</span>
@@ -462,21 +457,18 @@
                 <div id="reader"></div>
             </div>
 
-            <!-- Блок ручного ввода -->
             <div class="card manual-input-box" id="manual-box">
                 <label id="manual-label">Введите серийный номер вручную</label>
-                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер">
-                <button class="btn main-btn" onclick="submitManualCode()">Добавить ➕</button>
+                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер / Бухта">
+                <button class="btn main-btn" onclick="submitManualCode()">Добавить в общую пачку ➕</button>
             </div>
             
             <button class="btn action-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
             <button class="btn action-btn" id="gallery-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
             <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
 
-            <!-- Кнопка перехода к оформлению, если уже что-то сканировали -->
             <button class="btn main-btn" id="proceed-to-form-btn" style="display: none;" onclick="showFormStep()">Перейти к оформлению (<span id="batch-count-badge">0</span> шт.) 🚀</button>
 
-            <!-- Блок автора и кнопки в одну строку по центру -->
             <div class="author-footer">
                 <span class="author-text">Автор: Толокнов Евгений Алексеевич</span>
                 <button class="pulse-tg-btn" onclick="openAuthorChat()" title="Написать автору в Telegram">
@@ -487,7 +479,6 @@
             </div>
         </div>
 
-        <!-- ШАГ 2: ФОРМА И ОТПРАВКА -->
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
                 <span>Общая пачка оборудования</span> ✅
@@ -496,8 +487,7 @@
             <div class="card">
                 <label>Содержимое пачки (<span id="total-items-count">0</span>)</label>
                 <div class="code-display-list" id="scanned-codes-list-container">
-                    <!-- Сюда динамически добавятся элементы пачки -->
-                </div>
+                    </div>
                 <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
             </div>
 
@@ -531,7 +521,7 @@
                         <div class="dropdown-item" onclick="selectOptionValue('installer', 'Новиков Иван Викторович,Бригада №4 (Темиртау)', 'installer-btn', 'Новиков Иван', 'installer-list')">Новиков Иван</div>
                         <div class="dropdown-item" onclick="selectOptionValue('installer', 'Лоос Виктор Геннадьевич,Бригада №5 (Темиртау)', 'installer-btn', 'Лоос Виктор', 'installer-list')">Лоос Виктор</div>
                         <div class="dropdown-item" onclick="selectOptionValue('installer', 'Марчуков Андрей Артемович,Бригада №6 (Темиртау)', 'installer-btn', 'Марчуков Андрей', 'installer-list')">Марчуков Андрей</div>
-                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Щеколда Дмитрий Владимирович,Бригада №7 (Темиртау)', 'installer-btn', 'Щеколда Дмитрий', 'installer-list')">Иванусь Аркадий</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Иванусь Аркадий Александрович,Бригада №7 (Темиртау)', 'installer-btn', 'Иванусь Аркадий', 'installer-list')">Иванусь Аркадий</div>
                         <div class="dropdown-item" onclick="selectOptionValue('installer', 'Павленко Николай Александрович,Бригада №8 (Темиртау)', 'installer-btn', 'Павленко Николай', 'installer-list')">Павленко Николай</div>
                         <div class="dropdown-item" onclick="selectOptionValue('installer', 'Седухин Владимир Игоревич,Бригада №9 (Темиртау)', 'installer-btn', 'Седухин Владимир', 'installer-list')">Седухин Владимир</div>
                         <div class="dropdown-item" onclick="selectOptionValue('installer', 'Янковицкий Сергей Валерьевич,Бригада №10 (Темиртау)', 'installer-btn', 'Янковицкий Сергей', 'installer-list')">Янковицкий Сергей</div>
@@ -546,7 +536,6 @@
             <div class="loader" id="loader-text">Распределение по листам таблицы...⏳</div>
         </div>
 
-        <!-- ЭКРАН УСПЕХА -->
         <div id="success-screen">
             <div class="success-icon">✓</div>
             <h2 style="color: var(--text-main); margin: 0; font-size: 20px;">Успешно записано!</h2>
@@ -565,7 +554,12 @@
         let html5QrCode = null;
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
-        let lastScannedItemText = ""; // Переменная для контроля дублей на экране
+        let lastScannedItemText = ""; 
+
+        // Переменные для анти-дребезга (защита от повторного считывания того же штрих-кода)
+        let lastScannedCode = "";
+        let lastScanTime = 0;
+        const SCAN_COOLDOWN = 1500; // 1.5 секунды блокировки на тот же штрих-код
 
         function setEquipmentMode(type) {
             currentMode = type;
@@ -573,6 +567,9 @@
             document.getElementById('mode-router-btn').classList.remove('active');
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.remove('active');
+
+            // Сбрасываем память последнего кода при переключении режима
+            lastScannedCode = "";
 
             if (type === 'router') {
                 document.getElementById('mode-router-btn').classList.add('active');
@@ -593,7 +590,6 @@
             } else {
                 document.getElementById('mode-cable-btn').classList.add('active');
                 document.getElementById('cable-name-card').style.display = 'flex';
-                // Для кабеля тоже оставляем доступ к камере!
                 document.getElementById('camera-section').style.display = 'flex';
                 document.getElementById('toggle-manual-btn').style.display = 'flex';
                 document.getElementById('gallery-btn').style.display = 'flex';
@@ -668,6 +664,17 @@
             const trimmed = code.trim();
             if (!trimmed) return;
 
+            const now = Date.now();
+            
+            // ЗАЩИТА ОТ ДУБЛИКАТОВ: 
+            // Если этот же код пытаются просканировать повторно быстрее чем за 1.5 секунды — игнорируем
+            if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
+                return;
+            }
+
+            lastScannedCode = trimmed;
+            lastScanTime = now;
+
             let itemData = {
                 mode: currentMode, // 'router', 'stb', 'cable'
                 serial: trimmed,
@@ -729,7 +736,7 @@
             try {
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 260, height: 120 } },
+                    { fps: 10, qrbox: { width: 260, height: 120 } },
                     (text) => {
                         addCodeToBatch(text);
                     }
@@ -844,6 +851,7 @@
         function backToScanner() {
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
+            lastScannedCode = ""; // сбрасываем память при возврате
             updateBatchUI();
             setTimeout(() => { startCamera(); }, 300);
         }
@@ -851,6 +859,7 @@
         async function resetAllApp() {
             scannedBatch = [];
             lastScannedItemText = "";
+            lastScannedCode = "";
             document.getElementById('manual-serial-input').value = '';
             document.getElementById('last-scanned-box').style.display = 'none';
             
@@ -878,7 +887,6 @@
             const author = document.getElementById('author').value;
             const installer = document.getElementById('installer').value;
 
-            // Формируем единый запрос в Google Script
             const url = new URL(GOOGLE_SCRIPT_URL);
             url.searchParams.append('action', 'batchSave');
             url.searchParams.append('batchData', JSON.stringify(scannedBatch));
@@ -891,7 +899,6 @@
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            // Отправляем GET-запрос через изображение (маяк)
             const img = new Image();
             img.src = url.toString();
 
