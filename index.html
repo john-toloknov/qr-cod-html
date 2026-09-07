@@ -465,7 +465,7 @@
             </div>
 
             <div class="card" id="cable-name-card" style="display: none;">
-                <label>Марка кабеля (авто-метраж)</label>
+                <label>Марка кабеля</label>
                 <div class="custom-dropdown">
                     <button type="button" class="dropdown-select-btn" id="cable-btn" onclick="toggleDropdown('cable-list')">
                         <span id="cable-selected">Кабель U/UTP 2х2 (500 м)</span>
@@ -483,7 +483,7 @@
 
             <div class="last-scanned-card" id="last-scanned-box" style="display: none;">
                 <div class="last-scanned-top-row">
-                    <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
+                    <span class="last-scanned-title">✅ Успешно добавлено в список:</span>
                     <button type="button" class="rescan-icon-btn" onclick="rescanLastItem()" title="Пересканировать">🔄</button>
                 </div>
                 <span class="last-scanned-value" id="last-scanned-text">—</span>
@@ -518,11 +518,11 @@
 
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
-                <span>Общая пачка оборудования</span> ✅
+                <span>Общий список ТМЦ</span> ✅
             </div>
             
             <div class="card">
-                <label>Содержимое пачки (<span id="total-items-count">0</span>)</label>
+                <label>Содержимое списка (<span id="total-items-count">0</span>)</label>
                 <div class="code-display-list" id="scanned-codes-list-container">
                     </div>
                 <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
