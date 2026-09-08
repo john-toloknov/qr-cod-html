@@ -92,18 +92,11 @@
             background: rgba(34, 197, 94, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.3);
             border-radius: 12px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
             gap: 4px;
             box-sizing: border-box;
-            position: relative;
-        }
-
-        .last-scanned-top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .last-scanned-title {
@@ -112,32 +105,6 @@
             font-weight: 700;
             color: var(--success);
             letter-spacing: 0.5px;
-        }
-
-        .rescan-icon-btn {
-            background: rgba(34, 197, 94, 0.15);
-            border: 1px solid rgba(34, 197, 94, 0.4);
-            color: var(--text-main);
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            transition: all 0.2s ease;
-            padding: 0;
-            line-height: 1;
-        }
-
-        .rescan-icon-btn:hover {
-            background: rgba(34, 197, 94, 0.3);
-            border-color: var(--success);
-        }
-
-        .rescan-icon-btn:active {
-            transform: scale(0.92);
         }
 
         .last-scanned-value {
@@ -202,33 +169,6 @@
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-
-        /* Стили для порозного счетчика */
-        .breakdown-counter-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 2px;
-        }
-
-        .counter-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #111111;
-            border: 1px solid var(--card-border);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-main);
-            animation: fadeIn 0.2s ease;
-        }
-
-        .counter-badge span {
-            color: var(--beeline-yellow);
-            font-weight: 700;
         }
 
         /* Поле ввода для ручного режима */
@@ -491,7 +431,7 @@
             </div>
 
             <div class="card" id="cable-name-card" style="display: none;">
-                <label>Марка кабеля</label>
+                <label>Марка кабеля (авто-метраж)</label>
                 <div class="custom-dropdown">
                     <button type="button" class="dropdown-select-btn" id="cable-btn" onclick="toggleDropdown('cable-list')">
                         <span id="cable-selected">Кабель U/UTP 2х2 (500 м)</span>
@@ -508,22 +448,19 @@
             </div>
 
             <div class="last-scanned-card" id="last-scanned-box" style="display: none;">
-                <div class="last-scanned-top-row">
-                    <span class="last-scanned-title">✅ Успешно добавлено в список:</span>
-                    <button type="button" class="rescan-icon-btn" onclick="rescanLastItem()" title="Пересканировать">🔄</button>
-                </div>
+                <span class="last-scanned-title">✅ Успешно добавлено в пачку:</span>
                 <span class="last-scanned-value" id="last-scanned-text">—</span>
             </div>
 
             <div id="camera-section" style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);" id="scan-hint">Наведите камеру на штрих-код (В списке: 0 шт.)</div>
+                <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);" id="scan-hint">Наведите камеру на штрих-код (В пачке: 0 шт.)</div>
                 <div id="reader"></div>
             </div>
 
             <div class="card manual-input-box" id="manual-box">
                 <label id="manual-label">Введите серийный номер вручную</label>
-                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер">
-                <button class="btn main-btn" onclick="submitManualCode()">Добавить в общий список ➕</button>
+                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер / Бухта">
+                <button class="btn main-btn" onclick="submitManualCode()">Добавить в общую пачку ➕</button>
             </div>
             
             <button class="btn action-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
@@ -544,18 +481,13 @@
 
         <div id="step-form" class="step">
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
-                <span>Общий список ТМЦ</span> ✅
+                <span>Общая пачка оборудования</span> ✅
             </div>
             
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <label>Содержимое списка</label>
-                </div>
-                
-                <!-- Порозный счетчик (бэйджи) -->
-                <div class="breakdown-counter-container" id="breakdown-counter"></div>
-
-                <div class="code-display-list" id="scanned-codes-list-container"></div>
+                <label>Содержимое пачки (<span id="total-items-count">0</span>)</label>
+                <div class="code-display-list" id="scanned-codes-list-container">
+                    </div>
                 <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
             </div>
 
@@ -600,7 +532,7 @@
                 <input type="hidden" id="installer" value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">
             </div>
 
-            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать весь список в таблицу 🚀</button>
+            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать общую пачку в таблицу 🚀</button>
             <div class="loader" id="loader-text">Распределение по листам таблицы...⏳</div>
         </div>
 
@@ -617,16 +549,17 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
 
         let currentMode = "router"; // 'router', 'stb', 'cable'
-        let currentCableMeters = 500; 
-        let scannedBatch = []; 
+        let currentCableMeters = 500; // Автоматический метраж по умолчанию
+        let scannedBatch = []; // Единый массив объектов для всей пачки
         let html5QrCode = null;
         const zxingReader = new ZXing.BrowserMultiFormatReader();
         let isCameraRunning = false;
         let lastScannedItemText = ""; 
 
+        // Переменные для анти-дребезга (защита от повторного считывания того же штрих-кода)
         let lastScannedCode = "";
         let lastScanTime = 0;
-        const SCAN_COOLDOWN = 3000; 
+        const SCAN_COOLDOWN = 1500; // 1.5 секунды блокировки на тот же штрих-код
 
         function setEquipmentMode(type) {
             currentMode = type;
@@ -635,6 +568,7 @@
             document.getElementById('mode-stb-btn').classList.remove('active');
             document.getElementById('mode-cable-btn').classList.remove('active');
 
+            // Сбрасываем память последнего кода при переключении режима
             lastScannedCode = "";
 
             if (type === 'router') {
@@ -659,7 +593,7 @@
                 document.getElementById('camera-section').style.display = 'flex';
                 document.getElementById('toggle-manual-btn').style.display = 'flex';
                 document.getElementById('gallery-btn').style.display = 'flex';
-                document.getElementById('manual-label').textContent = 'Серийный номер кабеля';
+                document.getElementById('manual-label').textContent = 'Номер бухты / примечание кабеля';
                 startCamera();
             }
         }
@@ -731,13 +665,9 @@
             if (!trimmed) return;
 
             const now = Date.now();
-
-            const existsInBatch = scannedBatch.some(item => item.serial === trimmed);
-            if (existsInBatch) {
-                alert("⚠️ Этот штрих-код (серийный номер) уже добавлен в список!");
-                return;
-            }
-
+            
+            // ЗАЩИТА ОТ ДУБЛИКАТОВ: 
+            // Если этот же код пытаются просканировать повторно быстрее чем за 1.5 секунды — игнорируем
             if (trimmed === lastScannedCode && (now - lastScanTime < SCAN_COOLDOWN)) {
                 return;
             }
@@ -746,7 +676,7 @@
             lastScanTime = now;
 
             let itemData = {
-                mode: currentMode, 
+                mode: currentMode, // 'router', 'stb', 'cable'
                 serial: trimmed,
                 cableName: null,
                 meters: null
@@ -755,8 +685,7 @@
             if (currentMode === 'cable') {
                 itemData.cableName = document.getElementById('cable-name').value;
                 itemData.meters = currentCableMeters;
-                // Чистый формат: Кабель: Марка кабеля Серийный номер
-                lastScannedItemText = `Кабель: ${itemData.cableName} ${trimmed}`;
+                lastScannedItemText = `Кабель: ${itemData.cableName} (${itemData.meters}м) | Бухта: ${trimmed}`;
             } else if (currentMode === 'stb') {
                 lastScannedItemText = `Приставка | S/N: ${trimmed}`;
             } else {
@@ -766,36 +695,18 @@
             scannedBatch.push(itemData);
             updateBatchUI();
 
+            // Показываем карточку последнего сканирования на экране
             const lastBox = document.getElementById('last-scanned-box');
             const lastText = document.getElementById('last-scanned-text');
             lastText.textContent = lastScannedItemText;
             lastBox.style.display = 'flex';
 
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                try {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                } catch (e) {}
-            }
-            if (navigator.vibrate) {
-                try { navigator.vibrate(60); } catch (e) {}
-            }
-        }
-
-        function rescanLastItem() {
-            if (scannedBatch.length > 0) {
-                scannedBatch.pop(); 
-            }
-            lastScannedCode = ""; 
-            
-            document.getElementById('last-scanned-box').style.display = 'none';
-            updateBatchUI();
-
-            if (navigator.vibrate) navigator.vibrate(30);
+            if (navigator.vibrate) navigator.vibrate(50);
         }
 
         function updateBatchUI() {
             const count = scannedBatch.length;
-            document.getElementById('scan-hint').textContent = `Наведите камеру на штрих-код (В списке: ${count} шт.)`;
+            document.getElementById('scan-hint').textContent = `Наведите камеру на штрих-код (В пачке: ${count} шт.)`;
             const proceedBtn = document.getElementById('proceed-to-form-btn');
             const badge = document.getElementById('batch-count-badge');
             
@@ -893,29 +804,7 @@
             document.getElementById('step-scan').classList.remove('active');
             document.getElementById('success-screen').classList.remove('active');
             
-            let routerCount = 0;
-            let stbCount = 0;
-            let cableCount = 0;
-
-            scannedBatch.forEach(item => {
-                if (item.mode === 'router') routerCount++;
-                else if (item.mode === 'stb') stbCount++;
-                else if (item.mode === 'cable') cableCount++;
-            });
-
-            const counterContainer = document.getElementById('breakdown-counter');
-            counterContainer.innerHTML = '';
-
-            if (routerCount > 0) {
-                counterContainer.innerHTML += `<div class="counter-badge">🛜 Роутер: <span>${routerCount}</span></div>`;
-            }
-            if (stbCount > 0) {
-                counterContainer.innerHTML += `<div class="counter-badge">📺 Приставка: <span>${stbCount}</span></div>`;
-            }
-            if (cableCount > 0) {
-                counterContainer.innerHTML += `<div class="counter-badge">🔌 Кабель: <span>${cableCount}</span></div>`;
-            }
-
+            // Формируем красивый список смешанной пачки
             const listContainer = document.getElementById('scanned-codes-list-container');
             listContainer.innerHTML = '';
             
@@ -931,7 +820,7 @@
                     descText = item.serial;
                 } else if (item.mode === 'cable') {
                     typeBadge = '🔌 Кабель';
-                    descText = `${item.cableName} ${item.serial}`;
+                    descText = `${item.cableName} — ${item.meters}м (Бухта: ${item.serial})`;
                 }
 
                 listContainer.innerHTML += `
@@ -945,6 +834,7 @@
                 `;
             });
 
+            document.getElementById('total-items-count').textContent = scannedBatch.length;
             document.getElementById('step-form').classList.add('active');
         }
 
@@ -961,7 +851,7 @@
         function backToScanner() {
             document.getElementById('step-form').classList.remove('active');
             document.getElementById('step-scan').classList.add('active');
-            lastScannedCode = ""; 
+            lastScannedCode = ""; // сбрасываем память при возврате
             updateBatchUI();
             setTimeout(() => { startCamera(); }, 300);
         }
@@ -988,47 +878,34 @@
             setTimeout(() => { startCamera(); }, 500);
         }
 
-        async function sendDataToGoogleSheet() {
+        function sendDataToGoogleSheet() {
             if (scannedBatch.length === 0) {
-                alert("Ошибка: список пуст!");
+                alert("Ошибка: пачка пуста!");
                 return;
             }
 
             const author = document.getElementById('author').value;
             const installer = document.getElementById('installer').value;
 
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            url.searchParams.append('action', 'batchSave');
+            url.searchParams.append('batchData', JSON.stringify(scannedBatch));
+            url.searchParams.append('author', author);
+            url.searchParams.append('installer', installer);
+            
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
 
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            try {
-                // Используем POST-запрос, чтобы данные любого размера гарантированно доходили до таблицы
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        action: 'batchSave',
-                        batchData: scannedBatch,
-                        author: author,
-                        installer: installer
-                    })
-                });
+            const img = new Image();
+            img.src = url.toString();
 
-                setTimeout(() => {
-                    document.getElementById('step-form').classList.remove('active');
-                    document.getElementById('success-screen').classList.add('active');
-                }, 800);
-
-            } catch (error) {
-                alert("Ошибка при отправке: " + error);
-                submitBtn.style.display = 'flex';
-                loaderText.style.display = 'none';
-            }
+            setTimeout(() => {
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+            }, 1200);
         }
     </script>
 </body>
