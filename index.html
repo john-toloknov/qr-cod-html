@@ -988,7 +988,7 @@
             setTimeout(() => { startCamera(); }, 500);
         }
 
-        function sendDataToGoogleSheet() {
+        async function sendDataToGoogleSheet() {
             if (scannedBatch.length === 0) {
                 alert("Ошибка: список пуст!");
                 return;
@@ -997,25 +997,38 @@
             const author = document.getElementById('author').value;
             const installer = document.getElementById('installer').value;
 
-            const url = new URL(GOOGLE_SCRIPT_URL);
-            url.searchParams.append('action', 'batchSave');
-            url.searchParams.append('batchData', JSON.stringify(scannedBatch));
-            url.searchParams.append('author', author);
-            url.searchParams.append('installer', installer);
-            
             const submitBtn = document.getElementById('submit-btn');
             const loaderText = document.getElementById('loader-text');
 
             submitBtn.style.display = 'none';
             loaderText.style.display = 'block';
 
-            const img = new Image();
-            img.src = url.toString();
+            try {
+                // Используем POST-запрос, чтобы данные любого размера гарантированно доходили до таблицы
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'batchSave',
+                        batchData: scannedBatch,
+                        author: author,
+                        installer: installer
+                    })
+                });
 
-            setTimeout(() => {
-                document.getElementById('step-form').classList.remove('active');
-                document.getElementById('success-screen').classList.add('active');
-            }, 1200);
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.remove('active');
+                    document.getElementById('success-screen').classList.add('active');
+                }, 800);
+
+            } catch (error) {
+                alert("Ошибка при отправке: " + error);
+                submitBtn.style.display = 'flex';
+                loaderText.style.display = 'none';
+            }
         }
     </script>
 </body>
