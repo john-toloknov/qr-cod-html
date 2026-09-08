@@ -1,159 +1,872 @@
-// ==========================================
-// 22. СКАНЕР ЧЕРЕЗ САЙТ (Пакетная запись оборудования и кабеля)
-// ==========================================
-function doGet(e) {
-  try {
-    var action = e.parameter.action || "";
-    var dateObj = new Date();
-    var timeZone = Session.getScriptTimeZone() || "Asia/Almaty";
-    var dateStr = Utilities.formatDate(dateObj, timeZone, "dd.MM.yyyy");
-    var timeFormatted = Utilities.formatDate(dateObj, timeZone, "HH:mm");
-    
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var author = e.parameter.author || "Сотрудник";
-    var installer = e.parameter.installer || "";
-    
-    // Если это пакетная отправка пачки (batchSave)
-    if (action === "batchSave" && e.parameter.batchData) {
-      var batchData = JSON.parse(e.parameter.batchData);
-      if (!batchData || batchData.length === 0) {
-        return ContentService.createTextOutput("Error: Empty batch").setMimeType(ContentService.MimeType.TEXT);
-      }
-
-      var routersRows = [];
-      var stbRows = [];
-      var cableRows = [];
-      var telegramItemsList = [];
-
-      // Перебираем все элементы пачки и распределяем по листам
-      for (var i = 0; i < batchData.length; i++) {
-        var item = batchData[i];
-        var mode = item.mode; // 'router', 'stb', 'cable'
-        var serial = item.serial || "";
-
-        if (mode === "cable") {
-          var cableName = item.cableName || "Кабель";
-          var meters = item.meters || "";
-          
-          // Лист Кабель: [Дата, Серийный/Бухта, Название, Метраж, Монтажник, Автор]
-          cableRows.push([dateStr, serial, cableName, meters, installer, author]);
-          telegramItemsList.push("• Кабель: " + cableName + " — " + meters + "м (S/N: " + serial + ")");
-
-        } else if (mode === "stb") {
-          var brandStb = "Приставка IPTV ZXV10 B860H";
-          
-          // Лист Приставки (структура аналогична роутерам)
-          var newStbRow = [];
-          newStbRow[0]  = brandStb; 
-          newStbRow[1]  = ""; 
-          newStbRow[2]  = serial; 
-          newStbRow[3]  = ""; 
-          newStbRow[4]  = ""; 
-          newStbRow[5]  = ""; 
-          newStbRow[6]  = dateStr; 
-          newStbRow[7]  = ""; 
-          newStbRow[8]  = ""; 
-          newStbRow[9]  = installer; 
-          newStbRow[10] = author; 
-          
-          stbRows.push(newStbRow);
-          telegramItemsList.push("• Приставка: " + brandStb + " (S/N: " + serial + ")");
-
-        } else {
-          // Роутер — задействуем автоопределение модели по серийнику
-          var brandRouter = determineRouterModel(serial);
-          if (!brandRouter || brandRouter === "Не определено") {
-            brandRouter = "ROUTER MODEL ERROR";
-          }
-
-          var newRouterRow = [];
-          newRouterRow[0]  = brandRouter; 
-          newRouterRow[1]  = ""; 
-          newRouterRow[2]  = serial; 
-          newRouterRow[3]  = ""; 
-          newRouterRow[4]  = ""; 
-          newRouterRow[5]  = ""; 
-          newRouterRow[6]  = dateStr; 
-          newRouterRow[7]  = ""; 
-          newRouterRow[8]  = ""; 
-          newRouterRow[9]  = installer; 
-          newRouterRow[10] = author; 
-
-          routersRows.push(newRouterRow);
-          telegramItemsList.push("• Роутер: " + brandRouter + " (S/N: " + serial + ")");
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сканер оборудования | Beeline</title>
+    <!-- Подключаем Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0b0b;
+            --card-bg: #161616;
+            --card-border: #262626;
+            --beeline-yellow: #FFCC00;
+            --beeline-yellow-hover: #ffdb4d;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --success: #22c55e;
+            --danger: #ef4444;
         }
-      }
 
-      // Записываем пачки на соответствующие листы (пакетная вставка — быстро и эффективно)
-      if (routersRows.length > 0) {
-        var rSheet = ss.getSheetByName("Роутеры") || ss.insertSheet("Роутеры");
-        rSheet.getRange(rSheet.getLastRow() + 1, 1, routersRows.length, routersRows[0].length).setValues(routersRows);
-      }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; 
+            padding: 16px; 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
 
-      if (stbRows.length > 0) {
-        var sSheet = ss.getSheetByName("Приставки") || ss.insertSheet("Приставки");
-        sSheet.getRange(sSheet.getLastRow() + 1, 1, stbRows.length, stbRows[0].length).setValues(stbRows);
-      }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
 
-      if (cableRows.length > 0) {
-        var cSheet = ss.getSheetByName("Кабель") || ss.insertSheet("Кабель");
-        cSheet.getRange(cSheet.getLastRow() + 1, 1, cableRows.length, cableRows[0].length).setValues(cableRows);
-      }
+        /* Тройной переключатель режима (Роутер / Приставка / Кабель) */
+        .mode-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 4px;
+        }
 
-      // Отправка единого уведомления в Telegram со всей пачкой
-      if (installer) {
-        var totalCount = batchData.length;
-        var message = "⚠️ *📦 Выдача оборудования (" + totalCount + " шт.)*\n\n" +
-                      "👤 *Редактор:* " + author + "\n" +
-                      "👷 *Монтажник:* *" + installer + "*\n\n" +
-                      "📝 *Список позиций:*\n" +
-                      telegramItemsList.join("\n") + "\n\n" +
-                      "📆 *Дата:* " + dateStr + " 🕒 *Время:* " + timeFormatted;
+        .mode-btn {
+            padding: 12px 4px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .mode-btn.active {
+            background: var(--beeline-yellow);
+            color: #000000;
+            border-color: var(--beeline-yellow);
+            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.2);
+        }
+
+        /* Область камеры */
+        #reader { 
+            width: 100%; 
+            height: 220px !important; 
+            border-radius: 16px; 
+            overflow: hidden; 
+            background: #000;
+            border: 2px solid var(--card-border);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        }
         
-        sendTelegramMessage(DEFAULT_CHAT_ID, message);
-        checkAndSendPersonalTelegram(installer, message);
-      }
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
 
-      return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
-    }
+        /* Карточки */
+        .card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
 
-    // Обратная совместимость для старых одиночных запросов (если вдруг где-то вызывались)
-    var mode = e.parameter.mode || "equipment";
-    var type = e.parameter.type || "";
-    var serialNumber = e.parameter.serialNumber || "";
-    var installerSingle = e.parameter.installer || "";
-    var authorSingle = e.parameter.author || "Сотрудник";
-    var sheetName = (mode === "cable") ? "Кабель" : "Роутеры";
-    
-    var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
-    
-    if (mode === "cable") {
-      var cableNameSingle = e.parameter.cableName || "";
-      var metersSingle = e.parameter.meters || "";
-      sheet.appendRow([dateStr, serialNumber, cableNameSingle, metersSingle, installerSingle, authorSingle]);
-    } else {
-      var brandSingle = determineRouterModel(serialNumber) || "ROUTER MODEL ERROR";
-      sheet.appendRow([brandSingle, "", serialNumber, "", "", "", dateStr, "", "", installerSingle, authorSingle]);
-    }
-    
-    return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
-    
-  } catch (err) {
-    console.error("Ошибка в doGet: " + err.toString());
-    return ContentService.createTextOutput("Error: " + err.toString()).setMimeType(ContentService.MimeType.TEXT);
-  }
-}
+        .code-display-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
 
-// Вспомогательная функция для личных сообщений монтажникам
-function checkAndSendPersonalTelegram(installerName, message) {
-  var targetChatId = null;
-  for (var key in INSTALLER_CHAT_IDS) {
-    if (installerName.toLowerCase().indexOf(key.toLowerCase()) !== -1) {
-      targetChatId = INSTALLER_CHAT_IDS[key];
-      break;
-    }
-  }
-  if (targetChatId && targetChatId !== DEFAULT_CHAT_ID) {
-    sendTelegramMessage(targetChatId, message);
-  }
-}
+        .code-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            background: #0a0a0a;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        .code-item-row span.badge-type {
+            font-family: monospace;
+            color: var(--beeline-yellow);
+            font-size: 12px;
+        }
+
+        .delete-item-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Поле ввода для ручного режима */
+        .manual-input-box {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .manual-input-box.active {
+            display: flex;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #0a0a0a;
+            color: var(--text-main);
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .text-input:focus {
+            border-color: var(--beeline-yellow);
+        }
+
+        /* Кастомный выпадающий список */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .dropdown-select-btn {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #0a0a0a;
+            color: var(--text-main);
+            font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .dropdown-select-btn:hover {
+            border-color: var(--beeline-yellow);
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: #1c1c1c;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-sizing: border-box;
+        }
+
+        .dropdown-list.open {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 14px;
+            font-size: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+            border-bottom: 1px solid #222;
+            transition: background 0.15s;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 204, 0, 0.15);
+            color: var(--beeline-yellow);
+        }
+
+        /* Кнопки */
+        .btn {
+            border: none;
+            padding: 14px;
+            font-size: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 700;
+            transition: transform 0.1s ease, background-color 0.2s ease, border-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-sizing: border-box;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .main-btn { 
+            background-color: var(--beeline-yellow); 
+            color: #000000; 
+            box-shadow: 0 4px 14px rgba(255, 204, 0, 0.2);
+        }
+        .main-btn:hover {
+            background-color: var(--beeline-yellow-hover);
+        }
+
+        .secondary-btn {
+            background-color: rgba(255, 204, 0, 0.15);
+            color: var(--beeline-yellow);
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            font-size: 14px;
+            padding: 12px;
+        }
+
+        .action-btn {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .action-btn:hover {
+            border-color: var(--beeline-yellow);
+            color: var(--beeline-yellow);
+        }
+
+        /* Блок автора внизу в одну строку по центру */
+        .author-footer {
+            margin-top: 12px;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+
+        .author-text {
+            font-size: 13px;
+            color: var(--text-main);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Пульсирующая желтая кнопка Telegram */
+        .pulse-tg-btn {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            background-color: var(--beeline-yellow);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7);
+            animation: pulse-animation 2s infinite;
+            transition: transform 0.15s ease;
+        }
+
+        .pulse-tg-btn:active {
+            transform: scale(0.92);
+        }
+
+        .pulse-tg-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #000000;
+        }
+
+        @keyframes pulse-animation {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(255, 204, 0, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
+            }
+        }
+
+        #file-input { display: none; }
+        
+        .step { display: none; }
+        .step.active { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.25s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #success-screen {
+            text-align: center;
+            padding: 40px 10px;
+            display: none;
+        }
+        #success-screen.active {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .loader {
+            font-size: 14px;
+            color: var(--beeline-yellow);
+            display: none;
+            text-align: center;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- ШАГ 1: СКАНИРОВАНИЕ / ВВОД -->
+        <div id="step-scan" class="step active">
+            <!-- Тройной переключатель режима (Роутер / Приставка / Кабель) -->
+            <div class="mode-selector">
+                <button type="button" class="mode-btn active" id="mode-router-btn" onclick="setEquipmentMode('router')">🛜 Роутер</button>
+                <button type="button" class="mode-btn" id="mode-stb-btn" onclick="setEquipmentMode('stb')">📺 Приставка</button>
+                <button type="button" class="mode-btn" id="mode-cable-btn" onclick="setCableMode()">🔌 Кабель</button>
+            </div>
+
+            <!-- Карточка выбора наименования кабеля (видна только в режиме кабеля) -->
+            <div class="card" id="cable-name-card" style="display: none;">
+                <label>Марка кабеля (авто-метраж)</label>
+                <div class="custom-dropdown">
+                    <button type="button" class="dropdown-select-btn" id="cable-btn" onclick="toggleDropdown('cable-list')">
+                        <span id="cable-selected">Кабель U/UTP 2х2 (500 м)</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dropdown-list" id="cable-list">
+                        <div class="dropdown-item" onclick="selectCableOption('Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)', 'Кабель U/UTP 2х2 (500 м)', 500)">Кабель U/UTP 2х2 (500 м)</div>
+                        <div class="dropdown-item" onclick="selectCableOption('Кабель F/UTP 2х2Хawg24/1 PE1 Cat. 5e', 'Кабель F/UTP 2х2 (305 м)', 305)">Кабель F/UTP 2х2 (305 м)</div>
+                        <div class="dropdown-item" onclick="selectCableOption('Кабель U/UTP 4x2xAWG24/1 PVC Cat.5e (0.523)', 'Кабель U/UTP 4x2 (305 м)', 305)">Кабель U/UTP 4x2 (305 м)</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('ftp10', 'Кабель FTP 10х2х0,52 (Серийный кабель)', 'cable-btn', 'Кабель FTP 10х2 (305 м)', 'cable-list'); currentCableMeters = 305;">Кабель FTP 10х2 (305 м)</div>
+                    </div>
+                </div>
+                <input type="hidden" id="cable-name" value="Кабель U/UTP 2х2хAWG 24/1 PVC Cat.5e (0,503)">
+            </div>
+
+            <div id="camera-section" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="font-size: 13px; font-weight: 600; text-align: center; color: var(--text-muted);" id="scan-hint">Наведите камеру на штрих-код (В пачке: 0 шт.)</div>
+                <div id="reader"></div>
+            </div>
+
+            <!-- Блок ручного ввода -->
+            <div class="card manual-input-box" id="manual-box">
+                <label id="manual-label">Введите серийный номер вручную</label>
+                <input type="text" id="manual-serial-input" class="text-input" placeholder="Серийный номер / Бухта">
+                <button class="btn main-btn" onclick="submitManualCode()">Добавить в общую пачку ➕</button>
+            </div>
+            
+            <button class="btn action-btn" id="toggle-manual-btn" onclick="toggleManualInput()">Ввести вручную ⌨️</button>
+            <button class="btn action-btn" id="gallery-btn" onclick="document.getElementById('file-input').click()">Загрузить фото из галереи 📁</button>
+            <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+
+            <!-- Кнопка перехода к оформлению, если уже что-то сканировали -->
+            <button class="btn main-btn" id="proceed-to-form-btn" style="display: none;" onclick="showFormStep()">Перейти к оформлению (<span id="batch-count-badge">0</span> шт.) 🚀</button>
+
+            <!-- Блок автора и кнопки в одну строку по центру -->
+            <div class="author-footer">
+                <span class="author-text">Автор: Толокнов Евгений Алексеевич</span>
+                <button class="pulse-tg-btn" onclick="openAuthorChat()" title="Написать автору в Telegram">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.05-.78 4.11-1.79 6.85-2.97 8.22-3.55 3.91-1.67 4.72-1.96 5.25-1.97.12 0 .38.03.55.17.14.12.18.28.2.45-.02.07-.02.14-.03.24z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ШАГ 2: ФОРМА И ОТПРАВКА -->
+        <div id="step-form" class="step">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 14px;">
+                <span>Общая пачка оборудования</span> ✅
+            </div>
+            
+            <div class="card">
+                <label>Содержимое пачки (<span id="total-items-count">0</span>)</label>
+                <div class="code-display-list" id="scanned-codes-list-container">
+                    <!-- Сюда динамически добавятся элементы пачки -->
+                </div>
+                <button class="btn secondary-btn" onclick="backToScanner()">+ Добавить еще позиции 📲</button>
+            </div>
+
+            <div class="card">
+                <label>Кем выдан 👤</label>
+                <div class="custom-dropdown">
+                    <button type="button" class="dropdown-select-btn" id="author-btn" onclick="toggleDropdown('author-list')">
+                        <span id="author-selected">Толокнов Евгений</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dropdown-list" id="author-list">
+                        <div class="dropdown-item" onclick="selectOptionValue('author', 'Толокнов Евгений', 'author-btn', 'Толокнов Евгений', 'author-list')">Толокнов Евгений</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('author', 'Лоос Виктор', 'author-btn', 'Лоос Виктор', 'author-list')">Лоос Виктор</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('author', 'Стрижко Дмитрий', 'author-btn', 'Стрижко Дмитрий', 'author-list')">Стрижко Дмитрий</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('author', 'Какалова Мария', 'author-btn', 'Какалова Мария', 'author-list')">Какалова Мария</div>
+                    </div>
+                </div>
+                <input type="hidden" id="author" value="Толокнов Евгений">
+            </div>
+
+            <div class="card">
+                <label>Кому выдан (Бригада) 👤</label>
+                <div class="custom-dropdown">
+                    <button type="button" class="dropdown-select-btn" id="installer-btn" onclick="toggleDropdown('installer-list')">
+                        <span id="installer-selected">Курмангалиев Тимур</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="dropdown-list" id="installer-list">
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)', 'installer-btn', 'Курмангалиев Тимур', 'installer-list')">Курмангалиев Тимур</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Стрижко Дмитрий Юрьевич,Бригада №3 (Темиртау)', 'installer-btn', 'Стрижко Дмитрий', 'installer-list')">Стрижко Дмитрий</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Новиков Иван Викторович,Бригада №4 (Темиртау)', 'installer-btn', 'Новиков Иван', 'installer-list')">Новиков Иван</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Лоос Виктор Геннадьевич,Бригада №5 (Темиртау)', 'installer-btn', 'Лоос Виктор', 'installer-list')">Лоос Виктор</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Марчуков Андрей Артемович,Бригада №6 (Темиртау)', 'installer-btn', 'Марчуков Андрей', 'installer-list')">Марчуков Андрей</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Иванусь Аркадий Александрович,Бригада №7 (Темиртау)', 'installer-btn', 'Иванусь Аркадий', 'installer-list')">Иванусь Аркадий</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Павленко Николай Александрович,Бригада №8 (Темиртау)', 'installer-btn', 'Павленко Николай', 'installer-list')">Павленко Николай</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Седухин Владимир Игоревич,Бригада №9 (Темиртау)', 'installer-btn', 'Седухин Владимир', 'installer-list')">Седухин Владимир</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Янковицкий Сергей Валерьевич,Бригада №10 (Темиртау)', 'installer-btn', 'Янковицкий Сергей', 'installer-list')">Янковицкий Сергей</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Тарыца Захар Васильевич,Бригада №11 (Темиртау)', 'installer-btn', 'Тарыца Захар', 'installer-list')">Тарыца Захар</div>
+                        <div class="dropdown-item" onclick="selectOptionValue('installer', 'Кайзер Павел Иванович,Бригада №12 (Темиртау)', 'installer-btn', 'Кайзер Павел', 'installer-list')">Кайзер Павел</div>
+                    </div>
+                </div>
+                <input type="hidden" id="installer" value="Курмангалиев Тимур Берикович,Бригада №1 (Темиртау)">
+            </div>
+
+            <button class="btn main-btn" id="submit-btn" onclick="sendDataToGoogleSheet()">Записать общую пачку в таблицу 🚀</button>
+            <div class="loader" id="loader-text">Распределение по листам таблицы...⏳</div>
+        </div>
+
+        <!-- ЭКРАН УСПЕХА -->
+        <div id="success-screen">
+            <div class="success-icon">✓</div>
+            <h2 style="color: var(--text-main); margin: 0; font-size: 20px;">Успешно записано!</h2>
+            <p style="color: var(--text-muted); margin: 0; font-size: 13px;">Все позиции распределены по листам.</p>
+            <button class="btn main-btn" onclick="resetAllApp()" style="margin-top: 10px;">Новая выдача 📲</button>
+        </div>
+
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxINc6eOKp6cNkGxpPMj58WCSJSD6CpPxaSUo59Z2woVx4sMXK8UfDjLqOKuh-G07JBaw/exec";
+
+        let currentMode = "router"; // 'router', 'stb', 'cable'
+        let currentCableMeters = 500; // Автоматический метраж по умолчанию
+        let scannedBatch = []; // Единый массив объектов для всей пачки
+        let html5QrCode = null;
+        const zxingReader = new ZXing.BrowserMultiFormatReader();
+        let isCameraRunning = false;
+
+        function setEquipmentMode(type) {
+            currentMode = type;
+            
+            document.getElementById('mode-router-btn').classList.remove('active');
+            document.getElementById('mode-stb-btn').classList.remove('active');
+            document.getElementById('mode-cable-btn').classList.remove('active');
+
+            if (type === 'router') {
+                document.getElementById('mode-router-btn').classList.add('active');
+                document.getElementById('cable-name-card').style.display = 'none';
+                document.getElementById('camera-section').style.display = 'flex';
+                document.getElementById('toggle-manual-btn').style.display = 'flex';
+                document.getElementById('gallery-btn').style.display = 'flex';
+                document.getElementById('manual-label').textContent = 'Введите серийный номер роутера';
+            } else if (type === 'stb') {
+                document.getElementById('mode-stb-btn').classList.add('active');
+                document.getElementById('cable-name-card').style.display = 'none';
+                document.getElementById('camera-section').style.display = 'flex';
+                document.getElementById('toggle-manual-btn').style.display = 'flex';
+                document.getElementById('gallery-btn').style.display = 'flex';
+                document.getElementById('manual-label').textContent = 'Введите серийный номер приставки';
+            } else {
+                document.getElementById('mode-cable-btn').classList.add('active');
+                document.getElementById('cable-name-card').style.display = 'flex';
+                // Для кабеля скрываем камеру, кабель добавляется кнопкой
+                document.getElementById('camera-section').style.display = 'none';
+                // Сразу открываем режим ручного ввода для бухты кабеля
+                const manualBox = document.getElementById('manual-box');
+                if (!manualBox.classList.contains('active')) {
+                    toggleManualInput();
+                }
+                document.getElementById('toggle-manual-btn').style.display = 'none';
+                document.getElementById('gallery-btn').style.display = 'none';
+                document.getElementById('manual-label').textContent = 'Номер бухты / примечание кабеля';
+            }
+        }
+
+        function setCableMode() {
+            setEquipmentMode('cable');
+        }
+
+        function selectCableOption(fullVal, displayVal, meters) {
+            document.getElementById('cable-name').value = fullVal;
+            document.getElementById('cable-btn').querySelector('span').textContent = displayVal;
+            document.getElementById('cable-list').classList.remove('open');
+            currentCableMeters = meters;
+        }
+
+        function openAuthorChat() {
+            window.open('https://t.me/John_Toloknov', '_blank');
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.close();
+            }
+        }
+
+        function toggleDropdown(listId) {
+            document.querySelectorAll('.dropdown-list').forEach(el => {
+                if(el.id !== listId) el.classList.remove('open');
+            });
+            document.getElementById(listId).classList.toggle('open');
+        }
+
+        function selectOptionValue(hiddenInputId, value, btnId, displayText, listId) {
+            document.getElementById(hiddenInputId).value = value;
+            document.getElementById(btnId).querySelector('span').textContent = displayText;
+            document.getElementById(listId).classList.remove('open');
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-list').forEach(el => el.classList.remove('open'));
+            }
+        }
+
+        async function toggleManualInput() {
+            const manualBox = document.getElementById('manual-box');
+            const cameraSection = document.getElementById('camera-section');
+            const toggleBtn = document.getElementById('toggle-manual-btn');
+
+            if (!manualBox.classList.contains('active')) {
+                if (html5QrCode && isCameraRunning) {
+                    try {
+                        await html5QrCode.stop();
+                        await html5QrCode.clear();
+                    } catch (e) {}
+                    isCameraRunning = false;
+                }
+                cameraSection.style.display = 'none';
+                manualBox.classList.add('active');
+                if (currentMode !== 'cable') toggleBtn.textContent = 'Включить камеру 📷';
+                document.getElementById('manual-serial-input').focus();
+            } else {
+                manualBox.classList.remove('active');
+                cameraSection.style.display = 'flex';
+                toggleBtn.textContent = 'Ввести вручную ⌨️';
+                startCamera();
+            }
+        }
+
+        function addCodeToBatch(code) {
+            const trimmed = code.trim();
+            if (!trimmed) return;
+
+            let itemData = {
+                mode: currentMode, // 'router', 'stb', 'cable'
+                serial: trimmed,
+                cableName: null,
+                meters: null
+            };
+
+            if (currentMode === 'cable') {
+                itemData.cableName = document.getElementById('cable-name').value;
+                itemData.meters = currentCableMeters;
+            }
+
+            scannedBatch.push(itemData);
+            updateBatchUI();
+
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function updateBatchUI() {
+            const count = scannedBatch.length;
+            document.getElementById('scan-hint').textContent = `Наведите камеру на штрих-код (В пачке: ${count} шт.)`;
+            const proceedBtn = document.getElementById('proceed-to-form-btn');
+            const badge = document.getElementById('batch-count-badge');
+            
+            if (count > 0) {
+                proceedBtn.style.display = 'flex';
+                badge.textContent = count;
+            } else {
+                proceedBtn.style.display = 'none';
+            }
+        }
+
+        async function submitManualCode() {
+            const inputVal = document.getElementById('manual-serial-input').value.trim();
+            if (!inputVal) {
+                alert("Пожалуйста, введите данные!");
+                return;
+            }
+            addCodeToBatch(inputVal);
+            document.getElementById('manual-serial-input').value = '';
+            
+            // Если добавляем кабель, можно сразу показать подсказку об успешном добавлении
+            if (currentMode === 'cable') {
+                alert("Бухта кабеля успешно добавлена в пачку!");
+            }
+        }
+
+        async function startCamera() {
+            if (currentMode === 'cable') return; // Для кабеля камера не нужна
+            if (isCameraRunning) return;
+            document.getElementById('reader').innerHTML = '';
+            html5QrCode = new Html5Qrcode("reader");
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 260, height: 120 } },
+                    (text) => {
+                        addCodeToBatch(text);
+                    }
+                );
+                isCameraRunning = true;
+            } catch (err) {
+                isCameraRunning = false;
+            }
+        }
+
+        setTimeout(startCamera, 300);
+
+        async function handleFile(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                const file = e.target.files[0];
+                if (html5QrCode && isCameraRunning) {
+                    try { 
+                        await html5QrCode.stop(); 
+                        await html5QrCode.clear();
+                    } catch(e) {}
+                    isCameraRunning = false;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async function (event) {
+                    const img = new Image();
+                    img.onload = async function () {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 1600;
+                        canvas.height = img.height * (1600 / img.width);
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        try {
+                            const result = await zxingReader.decodeFromImageUrl(canvas.toDataURL('image/jpeg', 0.95));
+                            if (result) {
+                                addCodeToBatch(result.getText());
+                                alert("Штрих-код успешно добавлен из фото!");
+                                return;
+                            }
+                            throw new Error();
+                        } catch (err) {
+                            alert("Штрих-код не найден на фото.");
+                        }
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function showFormStep() {
+            if (scannedBatch.length === 0) {
+                alert("Сначала добавьте хотя бы одно устройство или кабель!");
+                return;
+            }
+
+            if (html5QrCode && isCameraRunning) {
+                try {
+                    await html5QrCode.stop();
+                    await html5QrCode.clear();
+                } catch (e) {}
+                isCameraRunning = false;
+            }
+
+            document.getElementById('step-scan').classList.remove('active');
+            document.getElementById('success-screen').classList.remove('active');
+            
+            // Формируем красивый список смешанной пачки
+            const listContainer = document.getElementById('scanned-codes-list-container');
+            listContainer.innerHTML = '';
+            
+            scannedBatch.forEach((item, index) => {
+                let typeBadge = '';
+                let descText = '';
+
+                if (item.mode === 'router') {
+                    typeBadge = '🛜 Роутер';
+                    descText = item.serial;
+                } else if (item.mode === 'stb') {
+                    typeBadge = '📺 Приставка';
+                    descText = item.serial;
+                } else if (item.mode === 'cable') {
+                    typeBadge = '🔌 Кабель';
+                    descText = `${item.cableName} — ${item.meters}м (Бухта: ${item.serial})`;
+                }
+
+                listContainer.innerHTML += `
+                    <div class="code-item-row">
+                        <div>
+                            <span class="badge-type">${typeBadge}</span><br>
+                            <span style="font-size: 12px; color: #bbb;">${descText}</span>
+                        </div>
+                        <button class="delete-item-btn" onclick="removeFromBatch(${index})" title="Удалить">✕</button>
+                    </div>
+                `;
+            });
+
+            document.getElementById('total-items-count').textContent = scannedBatch.length;
+            document.getElementById('step-form').classList.add('active');
+        }
+
+        function removeFromBatch(index) {
+            scannedBatch.splice(index, 1);
+            if (scannedBatch.length === 0) {
+                backToScanner();
+            } else {
+                showFormStep();
+                updateBatchUI();
+            }
+        }
+
+        function backToScanner() {
+            document.getElementById('step-form').classList.remove('active');
+            document.getElementById('step-scan').classList.add('active');
+            updateBatchUI();
+            setTimeout(() => { 
+                if (currentMode !== 'cable') startCamera(); 
+            }, 300);
+        }
+
+        async function resetAllApp() {
+            scannedBatch = [];
+            document.getElementById('manual-serial-input').value = '';
+            
+            document.getElementById('manual-box').classList.remove('active');
+            if (currentMode !== 'cable') {
+                document.getElementById('camera-section').style.display = 'flex';
+                document.getElementById('toggle-manual-btn').textContent = 'Ввести вручную ⌨️';
+            }
+
+            document.getElementById('success-screen').classList.remove('active');
+            document.getElementById('step-form').classList.remove('active');
+            document.getElementById('step-scan').classList.add('active');
+            document.getElementById('file-input').value = '';
+            document.getElementById('submit-btn').style.display = 'flex';
+            document.getElementById('loader-text').style.display = 'none';
+            
+            updateBatchUI();
+            setTimeout(() => { 
+                if (currentMode !== 'cable') startCamera(); 
+            }, 500);
+        }
+
+        function sendDataToGoogleSheet() {
+            if (scannedBatch.length === 0) {
+                alert("Ошибка: пачка пуста!");
+                return;
+            }
+
+            const author = document.getElementById('author').value;
+            const installer = document.getElementById('installer').value;
+
+            // Формируем единый запрос в Google Script
+            const url = new URL(GOOGLE_SCRIPT_URL);
+            url.searchParams.append('action', 'batchSave');
+            url.searchParams.append('batchData', JSON.stringify(scannedBatch));
+            url.searchParams.append('author', author);
+            url.searchParams.append('installer', installer);
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const loaderText = document.getElementById('loader-text');
+
+            submitBtn.style.display = 'none';
+            loaderText.style.display = 'block';
+
+            // Отправляем GET-запрос через изображение (маяк)
+            const img = new Image();
+            img.src = url.toString();
+
+            setTimeout(() => {
+                document.getElementById('step-form').classList.remove('active');
+                document.getElementById('success-screen').classList.add('active');
+            }, 1200);
+        }
+    </script>
+</body>
+</html>
